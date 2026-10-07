@@ -1,0 +1,7 @@
+# Keep the Sitemap line below in sync with SITE_URL in src/config/site.js.
+# While the domain is still TBD (serving on *.pages.dev) the site is also
+# marked noindex in public/_headers, so crawlers will not index it yet.
+User-agent: *
+Allow: /
+
+Sitemap: https://example.com/sitemap-index.xml

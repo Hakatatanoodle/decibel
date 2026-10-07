@@ -1,0 +1,56 @@
+---
+/**
+ * FAQ accordion built on <details>/<summary>: keyboard accessible with zero
+ * JavaScript. Items are passed in so the page can reuse the same array for
+ * the FAQPage JSON-LD (markup and structured data always match).
+ */
+interface FaqItem {
+  q: string;
+  a: string;
+}
+
+interface Props {
+  items: FaqItem[];
+  /** Heading level for the section title. */
+  headingLevel?: 'h2' | 'h3';
+}
+
+const { items, headingLevel = 'h2' } = Astro.props;
+const Heading = headingLevel;
+---
+
+<div class="divide-y divide-hairline dark:divide-dark-hairline rounded-2xl border rule bg-surface dark:bg-dark-surface">
+  {
+    items.map((item) => (
+      <details class="group">
+        <summary class="flex cursor-pointer list-none items-center justify-between gap-4 px-4 sm:px-5 py-4 select-none">
+          <Heading class="text-sm sm:text-base font-medium text-ink dark:text-dark-ink m-0!">
+            {item.q}
+          </Heading>
+          <svg
+            class="shrink-0 text-mute dark:text-dark-mute transition-transform group-open:rotate-45"
+            width="16"
+            height="16"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            aria-hidden="true"
+          >
+            <path d="M12 5v14M5 12h14" />
+          </svg>
+        </summary>
+        <div class="px-4 sm:px-5 pb-4 -mt-1">
+          <p class="text-sm leading-relaxed text-body dark:text-dark-body">{item.a}</p>
+        </div>
+      </details>
+    ))
+  }
+</div>
+
+<style>
+  summary::-webkit-details-marker {
+    display: none;
+  }
+</style>

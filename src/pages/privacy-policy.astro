@@ -1,0 +1,106 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import { CONTACT_EMAIL, SITE_NAME } from '../config/site.js';
+
+const UPDATED = '10 June 2026';
+---
+
+<BaseLayout
+  title="Privacy Policy"
+  description={`How ${SITE_NAME} handles your data: microphone audio is processed on-device and never uploaded, preferences stay in your browser, and there are no trackers.`}
+>
+  <section class="mx-auto w-full max-w-6xl px-4 sm:px-6 pt-10 sm:pt-14 pb-6">
+    <p class="text-xs font-mono uppercase tracking-[0.2em] text-accent">Legal</p>
+    <h1 class="mt-3 text-3xl sm:text-5xl font-semibold tracking-tight text-ink dark:text-dark-ink">
+      Privacy Policy
+    </h1>
+    <p class="mt-3 text-sm text-mute dark:text-dark-mute">Last updated {UPDATED}</p>
+  </section>
+
+  <section class="mx-auto w-full max-w-6xl px-4 sm:px-6 pb-16">
+    <div class="prose-page">
+      <p>
+        This privacy policy explains what happens — and what deliberately does
+        not happen — when you use {SITE_NAME} (the “Service”). The short
+        version: the microphone audio never leaves your device, we do not run
+        advertising trackers, and the only data we keep is what your browser
+        stores for you.
+      </p>
+
+      <h2>1. Microphone audio</h2>
+      <p>
+        When you press <strong>Start measuring</strong>, your browser requests
+        microphone access and streams audio into the page using the Web Audio
+        API. That stream is analysed in memory to compute a decibel reading
+        and is discarded frame by frame. <strong>We do not record, store,
+        transmit, or share audio.</strong> No audio file is ever created on our
+        servers (we do not operate any server that could receive it), and the
+        microphone stream stops as soon as you pause the meter, switch tabs,
+        or leave the page.
+      </p>
+
+      <h2>2. Data stored in your browser</h2>
+      <p>The Service saves a small set of preferences using your browser’s
+        localStorage:</p>
+      <ul>
+        <li><code>decibel-theme</code> — light or dark appearance.</li>
+        <li><code>decibel-calibration</code> — your calibration offset.</li>
+        <li><code>decibel-threshold:*</code> — alarm limit per page.</li>
+        <li><code>decibel-alarm:*</code> — alarm enabled state per page.</li>
+      </ul>
+      <p>
+        This data stays on your device, is never synced to us, and can be
+        removed at any time by clearing site data for this domain.
+      </p>
+
+      <h2>3. What we do not collect</h2>
+      <ul>
+        <li>No accounts, names, or email addresses (unless you choose to email us).</li>
+        <li>No advertising cookies or cross-site trackers.</li>
+        <li>No location data, device fingerprints, or analytics profiles.</li>
+        <li>No uploaded sound levels or measurement history.</li>
+      </ul>
+
+      <h2>4. Server logs</h2>
+      <p>
+        Like most websites, our hosting provider (Cloudflare Pages) processes
+        standard technical request logs — IP address, user agent, requested
+        URL, and timestamp — for delivery and security purposes. These logs are
+        operational, retained for a short period by the provider, and are not
+        used to build profiles of individual visitors.
+      </p>
+
+      <h2>5. Cookies</h2>
+      <p>
+        The Service itself sets no cookies. Preferences use localStorage
+        instead, which is not sent with HTTP requests.
+      </p>
+
+      <h2>6. Third parties</h2>
+      <p>
+        We embed no third-party widgets, fonts, ads, or social pixels. The
+        pages you load come from this site alone.
+      </p>
+
+      <h2>7. Children</h2>
+      <p>
+        The Service is suitable for classroom use and does not knowingly
+        collect personal information from anyone, including children.
+      </p>
+
+      <h2>8. Changes to this policy</h2>
+      <p>
+        If the way the Service handles data ever changes, we will update this
+        page and revise the date above. Continued use after a change
+        constitutes acceptance of the revised policy.
+      </p>
+
+      <h2>9. Contact</h2>
+      <p>
+        Questions about privacy? Write to
+        <a href={`mailto:${CONTACT_EMAIL}`}>{CONTACT_EMAIL}</a>. We answer
+        every privacy inquiry.
+      </p>
+    </div>
+  </section>
+</BaseLayout>

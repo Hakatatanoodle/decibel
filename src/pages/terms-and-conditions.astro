@@ -1,0 +1,120 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import { CONTACT_EMAIL, SITE_NAME, SITE_URL } from '../config/site.js';
+
+const UPDATED = '10 June 2026';
+---
+
+<BaseLayout
+  title="Terms and Conditions"
+  description={`Terms of use for ${SITE_NAME}: acceptable use, accuracy disclaimer for the browser-based decibel meter, limitation of liability, and how to reach us.`}
+>
+  <section class="mx-auto w-full max-w-6xl px-4 sm:px-6 pt-10 sm:pt-14 pb-6">
+    <p class="text-xs font-mono uppercase tracking-[0.2em] text-accent">Legal</p>
+    <h1 class="mt-3 text-3xl sm:text-5xl font-semibold tracking-tight text-ink dark:text-dark-ink">
+      Terms and Conditions
+    </h1>
+    <p class="mt-3 text-sm text-mute dark:text-dark-mute">Last updated {UPDATED}</p>
+  </section>
+
+  <section class="mx-auto w-full max-w-6xl px-4 sm:px-6 pb-16">
+    <div class="prose-page">
+      <p>
+        These terms govern your use of {SITE_NAME} at {SITE_URL} (the
+        “Service”). By using the Service you agree to them. If you do not
+        agree, please do not use the Service.
+      </p>
+
+      <h2>1. The Service</h2>
+      <p>
+        {SITE_NAME} is a free, browser-based tool that estimates sound levels
+        using your device’s microphone. It requires no account and no
+        installation. We may modify, suspend, or discontinue any part of the
+        Service at any time.
+      </p>
+
+      <h2>2. Acceptable use</h2>
+      <p>You agree not to:</p>
+      <ul>
+        <li>use the Service for any unlawful purpose or to harass others.</li>
+        <li>
+          attempt to disrupt, reverse-engineer for malicious purposes, or
+          overload the Service.
+        </li>
+        <li>
+          misrepresent readings produced by the Service as certified or
+          legally admissible measurements.
+        </li>
+        <li>
+          remove or obscure notices of ownership from the Service.
+        </li>
+      </ul>
+
+      <h2>3. Accuracy disclaimer</h2>
+      <p>
+        Consumer microphones, device cases, and browser audio pipelines all
+        affect readings. The Service provides an <strong>estimate</strong>
+        intended for education, awareness, and relative comparison. It is
+        <strong>not</strong> a certified sound level meter and must not be used
+        for regulatory compliance, legal proceedings, occupational noise
+        assessments, or any purpose requiring calibrated instrumentation.
+        Results vary between devices even after calibration.
+      </p>
+
+      <h2>4. Health and safety</h2>
+      <p>
+        Readings shown by the Service are informational and do not constitute
+        health or safety advice. You remain responsible for protecting your
+        hearing and the hearing of others; when in doubt, reduce exposure to
+        loud sound and consult official guidance.
+      </p>
+
+      <h2>5. Intellectual property</h2>
+      <p>
+        The Service, including its design, text, and code, is owned by us or
+        our licensors and is protected by applicable copyright law. We grant
+        you a limited, non-exclusive, revocable licence to use the Service for
+        its intended purpose. You may not redistribute or resell the Service
+        without written permission.
+      </p>
+
+      <h2>6. Limitation of liability</h2>
+      <p>
+        The Service is provided “as is” and “as available”, without warranties
+        of any kind, express or implied. To the maximum extent permitted by
+        law, we exclude liability for indirect, incidental, or consequential
+        damages arising from your use of the Service, including errors in
+        readings, interruption of the Service, or loss of stored preferences.
+        Our total liability shall not exceed the greater of the amount you
+        paid us (nothing, in practice) in the twelve months before the claim.
+      </p>
+
+      <h2>7. Privacy</h2>
+      <p>
+        Your use of the Service is also governed by our
+        <a href="/privacy-policy/">Privacy Policy</a>, which explains how
+        microphone audio and local preferences are handled.
+      </p>
+
+      <h2>8. Changes to these terms</h2>
+      <p>
+        We may update these terms from time to time. Material changes will be
+        reflected in the revision date above. Continued use of the Service
+        after changes means you accept the updated terms.
+      </p>
+
+      <h2>9. Governing law</h2>
+      <p>
+        These terms are governed by the laws of the jurisdiction in which the
+        operating entity is established, without regard to conflict-of-law
+        rules.
+      </p>
+
+      <h2>10. Contact</h2>
+      <p>
+        Questions about these terms? Email
+        <a href={`mailto:${CONTACT_EMAIL}`}>{CONTACT_EMAIL}</a>.
+      </p>
+    </div>
+  </section>
+</BaseLayout>

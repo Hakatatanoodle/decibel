@@ -1,0 +1,186 @@
+@import "tailwindcss" source(none);
+
+/* Only scan our own sources — the Tailwind docs skill snapshot under .agents/
+   contains example class strings (bg-[url(/img/...)] etc.) that are not part
+   of this site. Paths are relative to this stylesheet. */
+@source "../";
+@source "../../public";
+
+/* Class-driven dark mode (toggled on <html>, persisted in localStorage). */
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* ---------------------------------------------------------------------------
+   DESIGN.md tokens — Vercel/Geist-style grayscale + electric blue accent.
+   Values in @theme generate the matching utility classes (bg-ink, text-mute…).
+--------------------------------------------------------------------------- */
+@theme {
+  --font-sans: "Geist Sans", "Geist", -apple-system, BlinkMacSystemFont,
+    "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --font-mono: "Geist Mono", ui-monospace, SFMono-Regular, "SF Mono", Menlo,
+    Consolas, "Liberation Mono", monospace;
+
+  /* grayscale ladder */
+  --color-canvas: #fafafa;
+  --color-surface: #ffffff;
+  --color-ink: #171717;
+  --color-body: #4d4d4d;
+  --color-mute: #8f8f8f;
+  --color-faint: #a1a1a1;
+  --color-hairline: #ebebeb;
+  --color-hairline-soft: #f2f2f2;
+
+  /* accents (color used only in gradients/illustrations, per DESIGN.md) */
+  --color-accent: #0070f3;
+  --color-accent-hover: #0059c1;
+  --color-on-accent: #ffffff;
+  --color-danger: #ee0000;
+  --color-warning: #f5a623;
+  --color-ok: #17c964;
+
+  /* level bands for the meter */
+  --color-band-quiet: #17c964;
+  --color-band-moderate: #0070f3;
+  --color-band-loud: #f5a623;
+  --color-band-danger: #ee0000;
+
+  /* dark surfaces (used with dark: variants below) */
+  --color-dark-canvas: #0a0a0a;
+  --color-dark-surface: #141414;
+  --color-dark-ink: #ededed;
+  --color-dark-body: #b8b8b8;
+  --color-dark-mute: #8f8f8f;
+  --color-dark-hairline: #262626;
+}
+
+@layer base {
+  :root {
+    color-scheme: light;
+    --page-bg: var(--color-canvas);
+    --fg: var(--color-ink);
+  }
+
+  html.dark {
+    color-scheme: dark;
+    --page-bg: var(--color-dark-canvas);
+    --fg: var(--color-dark-ink);
+  }
+
+  html {
+    /* Zero layout shift: reserve scrollbars consistently in both themes. */
+    scrollbar-gutter: stable;
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    background-color: var(--page-bg);
+    color: var(--color-body);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+
+  html.dark body {
+    color: var(--color-dark-body);
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    color: var(--fg);
+    text-wrap: balance;
+  }
+
+  html.dark h1,
+  html.dark h2,
+  html.dark h3,
+  html.dark h4,
+  html.dark h5,
+  html.dark h6 {
+    color: var(--color-dark-ink);
+  }
+
+  ::selection {
+    background: color-mix(in oklab, var(--color-accent) 24%, transparent);
+  }
+
+  /* Focus: visible in both themes without shifting layout. */
+  :where(a, button, input, select, textarea, summary, [tabindex]):focus-visible {
+    outline: 2px solid var(--color-accent);
+    outline-offset: 2px;
+    border-radius: 4px;
+  }
+}
+
+@layer components {
+  /* Single px hairline border utility that also flips for dark mode. */
+  .rule {
+    border-color: var(--color-hairline);
+  }
+
+  html.dark .rule {
+    border-color: var(--color-dark-hairline);
+  }
+
+  /* Prose column for the long-form copy pages (about, legal, blog…). */
+  .prose-page {
+    max-width: 46rem;
+  }
+
+  .prose-page h2 {
+    font-size: 1.5rem;
+    line-height: 2rem;
+    font-weight: 600;
+    letter-spacing: -0.02em;
+    margin-top: 2.5rem;
+    margin-bottom: 0.75rem;
+  }
+
+  .prose-page h3 {
+    font-size: 1.125rem;
+    line-height: 1.75rem;
+    font-weight: 600;
+    margin-top: 1.75rem;
+    margin-bottom: 0.5rem;
+  }
+
+  .prose-page p {
+    margin-bottom: 1rem;
+    line-height: 1.75;
+  }
+
+  .prose-page ul,
+  .prose-page ol {
+    margin-bottom: 1rem;
+    padding-left: 1.5rem;
+    line-height: 1.75;
+  }
+
+  .prose-page ul {
+    list-style: disc;
+  }
+
+  .prose-page ol {
+    list-style: decimal;
+  }
+
+  .prose-page li {
+    margin-bottom: 0.375rem;
+  }
+
+  .prose-page a {
+    color: var(--color-accent);
+    text-decoration: underline;
+    text-underline-offset: 2px;
+  }
+
+  .prose-page a:hover {
+    color: var(--color-accent-hover);
+  }
+
+  .prose-page strong {
+    color: var(--color-ink);
+    font-weight: 600;
+  }
+
+  html.dark .prose-page strong {
+    color: var(--color-dark-ink);
+  }
+}

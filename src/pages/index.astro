@@ -1,0 +1,212 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import DecibelMeter from '../components/DecibelMeter.astro';
+import FaqAccordion from '../components/FaqAccordion.astro';
+
+const FAQ = [
+  {
+    q: 'Is this decibel meter accurate?',
+    a: 'It gives a realistic relative reading, not a laboratory measurement. The meter converts your microphone signal to dBFS, maps it onto a 0–120 dB scale, and lets you offset the result against a trusted meter with the calibration slider. Phone and laptop microphones differ, so treat the number as a well-informed estimate — excellent for spotting “too loud” moments, not for certified noise reports.',
+  },
+  {
+    q: 'Does the website record or upload my audio?',
+    a: 'No. Sound is analysed locally in your browser with the Web Audio API. No audio is recorded, stored, or sent to any server, and the page works entirely on-device once loaded.',
+  },
+  {
+    q: 'Why does my browser ask for microphone permission?',
+    a: 'The meter needs live microphone input to measure sound. The browser shows a permission prompt the first time you press Start measuring — you stay in control and can revoke access at any time from the address bar.',
+  },
+  {
+    q: 'What does the alarm threshold do?',
+    a: 'When the measured level stays above your chosen limit, the panel flashes red so a teacher, engineer, or parent can notice from across the room. Set the limit between 40 and 110 dB; it is saved in your browser for next visit.',
+  },
+  {
+    q: 'How do I calibrate the meter?',
+    a: 'Hold a certified sound level meter next to your device, play a steady sound, and adjust the calibration slider until both devices show the same number. The offset (from −30 to +30 dB) is remembered on this device.',
+  },
+  {
+    q: 'Can I use it on a phone or tablet?',
+    a: 'Yes. The layout works on any screen size, and display mode turns the number into a giant readout you can prop up across a room. For best results on mobile, keep the device away from your hands so the microphone is not muffled.',
+  },
+  {
+    q: 'Is it free to use?',
+    a: 'Completely free, with no account, no ads, and no usage limits. Press Start, allow the microphone, and read the level.',
+  },
+];
+
+const faqLd = {
+  '@context': 'https://schema.org',
+  '@type': 'FAQPage',
+  mainEntity: FAQ.map((item) => ({
+    '@type': 'Question',
+    name: item.q,
+    acceptedAnswer: { '@type': 'Answer', text: item.a },
+  })),
+};
+
+const headExtra = `<script type="application/ld+json">${JSON.stringify(faqLd)}</script>`;
+---
+
+<BaseLayout
+  title="Online Decibel Meter"
+  description="Free online decibel meter: measure live sound levels in your browser with a real-time gauge, 60-second graph, calibration and a noise alarm. No install, no upload — microphone stays on your device."
+  headExtra={headExtra}
+>
+  <!-- Hero -->
+  <section class="mx-auto w-full max-w-6xl px-4 sm:px-6 pt-10 sm:pt-14 pb-6">
+    <p
+      class="text-xs font-mono uppercase tracking-[0.2em] text-accent dark:text-accent"
+    >
+      Free · No install · On-device
+    </p>
+    <h1
+      class="mt-3 text-3xl sm:text-5xl font-semibold tracking-tight text-ink dark:text-dark-ink text-balance"
+    >
+      Online Decibel Meter
+    </h1>
+    <p class="mt-4 max-w-2xl text-base sm:text-lg leading-relaxed text-body dark:text-dark-body">
+      Measure the sound around you in real time. Press start, allow microphone
+      access, and watch a live dB gauge, a rolling 60-second graph, and an
+      instant quiet / moderate / loud verdict — right in your browser, with
+      nothing ever uploaded.
+    </p>
+    <ul class="mt-5 flex flex-wrap gap-2 text-xs">
+      {
+        ['Live 0–120 dB gauge', '60 s history graph', 'Threshold alarm', 'Calibration offset', 'Keyboard shortcuts', 'Dark mode'].map(
+          (chip) => (
+            <li class="px-2.5 py-1 rounded-full border rule bg-surface dark:bg-dark-surface text-mute dark:text-dark-mute">
+              {chip}
+            </li>
+          )
+        )
+      }
+    </ul>
+  </section>
+
+  <!-- The tool -->
+  <section
+    id="meter"
+    class="mx-auto w-full max-w-6xl px-4 sm:px-6 pb-10 scroll-mt-20"
+    aria-label="Live decibel meter"
+  >
+    <DecibelMeter defaultThreshold={70} alarmDefault variant="classroom" />
+  </section>
+
+  <!-- Content: how it works -->
+  <section class="mx-auto w-full max-w-6xl px-4 sm:px-6 pb-12">
+    <div class="grid gap-8 lg:grid-cols-2">
+      <article class="max-w-prose">
+        <h2
+          class="text-xl sm:text-2xl font-semibold tracking-tight text-ink dark:text-dark-ink"
+        >
+          How the online decibel meter works
+        </h2>
+        <p class="mt-3 leading-relaxed text-body dark:text-dark-body">
+          Sound is pressure moving through air, and a decibel (dB) scale
+          compresses that pressure into a number humans can actually use: every
+          10 dB doubles the perceived loudness. This meter listens through your
+          device's microphone, samples the waveform several thousand times per
+          second, and converts the signal's strength into a sound level on a
+          0–120 dB scale — the same range you meet in everyday life, from a
+          whisper to a rock concert.
+        </p>
+        <p class="mt-3 leading-relaxed text-body dark:text-dark-body">
+          Everything happens locally. The browser's Web Audio API streams
+          samples straight from the microphone into an analyzer node; the
+          reading, graph, and statistics are computed in the page. No recording
+          is made, no audio leaves your device, and nothing is sent to a
+          server. When you pause the meter or close the tab, the microphone
+          stream is released immediately so the browser's recording indicator
+          switches off.
+        </p>
+        <p class="mt-3 leading-relaxed text-body dark:text-dark-body">
+          The large gauge shows the current level, the 60-second graph shows
+          how the room has been behaving, and min / average / max keep the
+          session's extremes. Colour bands make the verdict readable at a
+          glance: green for quiet, blue for moderate, amber for loud, and red
+          once a level becomes risky for hearing.
+        </p>
+      </article>
+
+      <article class="max-w-prose">
+        <h2
+          class="text-xl sm:text-2xl font-semibold tracking-tight text-ink dark:text-dark-ink"
+        >
+          Getting a reading you can trust
+        </h2>
+        <p class="mt-3 leading-relaxed text-body dark:text-dark-body">
+          Built-in microphones are convenient sensors, but no two are alike —
+          a phone, a laptop, and a USB headset will show slightly different
+          numbers in the same room. Treat this tool as a precise relative
+          instrument: it is excellent for comparing “now versus five minutes
+          ago,” for spotting noise spikes, and for checking whether a space
+          stays inside a target range.
+        </p>
+        <p class="mt-3 leading-relaxed text-body dark:text-dark-body">
+          For a closer match to a certified sound level meter, use
+          <strong>calibration</strong>: play a steady tone or hold a reference
+          meter next to the device, then nudge the calibration slider until the
+          numbers agree. The offset is stored in your browser, so you only do
+          it once per device. Keep the phone flat, away from walls and sleeves,
+          and avoid covering the microphone port.
+        </p>
+        <p class="mt-3 leading-relaxed text-body dark:text-dark-body">
+          Set an <strong>alarm threshold</strong> — 85 dB is the level at
+          which, according to health authorities, prolonged exposure can damage
+          hearing, while many teachers use 70 dB as a classroom comfort target
+          — and the panel flashes red whenever the room goes over the limit,
+          so you notice without staring at the screen.
+        </p>
+      </article>
+    </div>
+  </section>
+
+  <!-- Use cases -->
+  <section class="mx-auto w-full max-w-6xl px-4 sm:px-6 pb-12">
+    <div class="grid gap-4 sm:grid-cols-3">
+      {
+        [
+          {
+            href: '/classroom-noise-meter/',
+            title: 'Classroom noise meter',
+            body: 'Project display mode on the board and keep the class below a chosen limit with a flashing visual cue.',
+          },
+          {
+            href: '/sound-level-meter/',
+            title: 'Sound level checks',
+            body: 'Compare rooms, appliances, HVAC systems, or events and track how loud a space really gets over a minute.',
+          },
+          {
+            href: '#meter',
+            title: 'Hearing safety',
+            body: 'Watch the red band: sustained levels at or above 85 dB put hearing at risk, so give your ears a break.',
+          },
+        ].map((card) => (
+          <a
+            href={card.href}
+            class="group rounded-2xl border rule bg-surface dark:bg-dark-surface p-5 transition-colors hover:border-accent/40"
+          >
+            <h3 class="text-sm font-semibold text-ink dark:text-dark-ink group-hover:text-accent transition-colors">
+              {card.title}
+            </h3>
+            <p class="mt-2 text-sm leading-relaxed text-body dark:text-dark-body">
+              {card.body}
+            </p>
+          </a>
+        ))
+      }
+    </div>
+  </section>
+
+  <!-- FAQ -->
+  <section class="mx-auto w-full max-w-6xl px-4 sm:px-6 pb-16">
+    <h2
+      class="text-xl sm:text-2xl font-semibold tracking-tight text-ink dark:text-dark-ink"
+    >
+      Frequently asked questions
+    </h2>
+    <div class="mt-4 max-w-3xl">
+      <FaqAccordion items={FAQ} headingLevel="h3" />
+    </div>
+  </section>
+</BaseLayout>

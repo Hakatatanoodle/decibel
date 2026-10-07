@@ -1,0 +1,79 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import { SITE_NAME, SITE_TAGLINE, CONTACT_EMAIL } from '../config/site.js';
+---
+
+<BaseLayout
+  title="About Us"
+  description={`About ${SITE_NAME} — the free ${SITE_TAGLINE} that measures sound in your browser, keeps audio on your device, and stays ad-free for everyone.`}
+>
+  <section class="mx-auto w-full max-w-6xl px-4 sm:px-6 pt-10 sm:pt-14 pb-6">
+    <p class="text-xs font-mono uppercase tracking-[0.2em] text-accent">About</p>
+    <h1
+      class="mt-3 text-3xl sm:text-5xl font-semibold tracking-tight text-ink dark:text-dark-ink"
+    >
+      About Us
+    </h1>
+  </section>
+
+  <section class="mx-auto w-full max-w-6xl px-4 sm:px-6 pb-16">
+    <div class="prose-page">
+      <p>
+        {SITE_NAME} started with a simple frustration: everyone occasionally
+        needs to know how loud something is — a classroom, an open-plan office,
+        a baby’s room, a workshop, a gig — and the answer was either a paid app
+        full of ads or a hardware meter that costs more than it should. We
+        thought the browser could do better.
+      </p>
+
+      <h2>What we build</h2>
+      <p>
+        We build small, focused tools that work the moment you open them. The
+        {SITE_TAGLINE} is our flagship: a live gauge, a rolling 60-second
+        graph, calibration against a reference meter, and a threshold alarm —
+        all rendered locally, all free, with no account, no install, and no
+        upsell. Every screen follows the same rule: the thing you came to do is
+        the first thing you can do.
+      </p>
+
+      <h2>Why privacy is the product</h2>
+      <p>
+        A microphone tool only earns trust by never misusing the microphone.
+        The audio stream is analysed in your browser with the Web Audio API and
+        discarded sample by sample — nothing is recorded, buffered to disk, or
+        transmitted. The only things we store are the preferences you choose
+        (theme, calibration, alarm limit), and those live in your own browser’s
+        storage, not on a server. You can read the full detail in our
+        <a href="/privacy-policy/">privacy policy</a>.
+      </p>
+
+      <h2>How we keep it free</h2>
+      <p>
+        There is no advertising network on this site and we do not sell data —
+        there is none to sell. The project is funded by the people who rely on
+        it: schools, safety officers, musicians, and tinkerers who chip in when
+        a tool saves them time. If {SITE_NAME} helped you, the best support is
+        telling a colleague about it.
+      </p>
+
+      <h2>Accuracy, honestly stated</h2>
+      <p>
+        We take measurement seriously, which means being honest about limits.
+        Device microphones differ, consumer hardware is not calibrated like a
+        Class 2 sound level meter, and a browser cannot apply certified
+        weighting filters. Our calibration offset closes most of the gap for
+        everyday comparisons, but for regulatory or legal noise assessments
+        you should always use a certified instrument. The tool is designed for
+        awareness, education, and relative comparison — and it is very good at
+        those.
+      </p>
+
+      <h2>Contact</h2>
+      <p>
+        Questions, bug reports, or a feature idea? Write to us at
+        <a href={`mailto:${CONTACT_EMAIL}`}>{CONTACT_EMAIL}</a> or use the
+        <a href="/contact-us/">contact page</a>. We read everything.
+      </p>
+    </div>
+  </section>
+</BaseLayout>

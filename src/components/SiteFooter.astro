@@ -1,0 +1,88 @@
+---
+import {
+  FOOTER_PRODUCT,
+  FOOTER_COMPANY,
+  FOOTER_LEGAL,
+  SITE_NAME,
+} from '../config/site.js';
+
+const year = new Date().getFullYear();
+---
+
+<footer class="border-t rule mt-16">
+  <div class="mx-auto w-full max-w-6xl px-4 sm:px-6 py-10">
+    <div class="grid gap-8 sm:grid-cols-2 lg:grid-cols-4">
+      <div>
+        <p class="text-ink dark:text-dark-ink font-semibold tracking-tight">{SITE_NAME}</p>
+        <p class="mt-2 text-sm text-mute dark:text-dark-mute leading-relaxed">
+          A free, browser-based decibel meter. Audio is processed on your device and
+          never uploaded.
+        </p>
+      </div>
+
+      <nav aria-label="Tools">
+        <p class="text-xs font-mono uppercase tracking-widest text-faint">Tools</p>
+        <ul class="mt-3 space-y-2">
+          {
+            FOOTER_PRODUCT.map((link) => (
+              <li>
+                <a
+                  href={link.href}
+                  class="text-sm text-body dark:text-dark-body hover:text-ink dark:hover:text-dark-ink transition-colors"
+                >
+                  {link.label}
+                </a>
+              </li>
+            ))
+          }
+        </ul>
+      </nav>
+
+      <nav aria-label="Company">
+        <p class="text-xs font-mono uppercase tracking-widest text-faint">Company</p>
+        <ul class="mt-3 space-y-2">
+          {
+            FOOTER_COMPANY.map((link) => (
+              <li>
+                <a
+                  href={link.href}
+                  class="text-sm text-body dark:text-dark-body hover:text-ink dark:hover:text-dark-ink transition-colors"
+                >
+                  {link.label}
+                </a>
+              </li>
+            ))
+          }
+        </ul>
+      </nav>
+
+      <nav aria-label="Legal">
+        <p class="text-xs font-mono uppercase tracking-widest text-faint">Legal</p>
+        <ul class="mt-3 space-y-2">
+          {
+            FOOTER_LEGAL.map((link) => (
+              <li>
+                <a
+                  href={link.href}
+                  class="text-sm text-body dark:text-dark-body hover:text-ink dark:hover:text-dark-ink transition-colors"
+                >
+                  {link.label}
+                </a>
+              </li>
+            ))
+          }
+        </ul>
+      </nav>
+    </div>
+
+    <div
+      class="mt-10 pt-6 border-t rule flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3"
+    >
+      <p class="text-xs text-faint">
+        © {year} {SITE_NAME}. For informational use only — not a certified
+        sound level meter.
+      </p>
+      <p class="text-xs text-faint font-mono">No cookies. No accounts. No tracking.</p>
+    </div>
+  </div>
+</footer>

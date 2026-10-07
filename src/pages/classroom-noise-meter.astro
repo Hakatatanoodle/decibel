@@ -1,0 +1,153 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import DecibelMeter from '../components/DecibelMeter.astro';
+import ReferenceChart from '../components/ReferenceChart.astro';
+import FaqAccordion from '../components/FaqAccordion.astro';
+
+const FAQ = [
+  {
+    q: 'What noise level is recommended for a classroom?',
+    a: 'Research on classroom acoustics generally suggests backgrounds near 35–45 dB and a teacher’s voice around 65 dB at the back of the room. Many schools set 70 dB as the practical ceiling: above it, speech intelligibility drops and both pupils and teachers start to strain.',
+  },
+  {
+    q: 'How do teachers use this noise meter in class?',
+    a: 'Open display mode (press F) and put the device where the class can see it. Set the threshold to 70 dB and leave the alarm on — the screen flashes red the moment the room goes over the limit, giving a silent, non-confrontational cue to settle down.',
+  },
+  {
+    q: 'Do pupils need phones to use it?',
+    a: 'No. One device is enough: a teacher’s laptop, an interactive whiteboard companion phone, or a tablet on a desk. Nothing is installed and no pupil account is needed.',
+  },
+  {
+    q: 'Does it record what is being said?',
+    a: 'Never. The microphone feed is analysed locally for volume only and discarded frame by frame. No audio is recorded or transmitted, so it cannot be used as a listening device.',
+  },
+  {
+    q: 'Can we track noise over a lesson?',
+    a: 'Yes — the 60-second graph plus min / average / max give a quick snapshot of each lesson. For longer records, keep the meter running and note the average at intervals, or screenshot display mode at the end of class.',
+  },
+];
+
+const faqLd = {
+  '@context': 'https://schema.org',
+  '@type': 'FAQPage',
+  mainEntity: FAQ.map((item) => ({
+    '@type': 'Question',
+    name: item.q,
+    acceptedAnswer: { '@type': 'Answer', text: item.a },
+  })),
+};
+
+const headExtra = `<script type="application/ld+json">${JSON.stringify(faqLd)}</script>`;
+---
+
+<BaseLayout
+  title="Classroom Noise Meter"
+  description="Free classroom noise meter with a live dB gauge, flashing 70 dB alarm and big display mode. Helps teachers manage noise levels, protect voice, and keep pupils focused — no install, nothing recorded."
+  headExtra={headExtra}
+>
+  <section class="mx-auto w-full max-w-6xl px-4 sm:px-6 pt-10 sm:pt-14 pb-6">
+    <p class="text-xs font-mono uppercase tracking-[0.2em] text-accent">For teachers &amp; schools</p>
+    <h1
+      class="mt-3 text-3xl sm:text-5xl font-semibold tracking-tight text-ink dark:text-dark-ink text-balance"
+    >
+      Classroom Noise Meter
+    </h1>
+    <p class="mt-4 max-w-2xl text-base sm:text-lg leading-relaxed text-body dark:text-dark-body">
+      A silent co-teacher for your room: put the meter where pupils can see it,
+      set the limit to 70 dB, and let a flashing red screen do the reminding.
+      Free, browser-based, and it never records a word.
+    </p>
+  </section>
+
+  <section
+    id="meter"
+    class="mx-auto w-full max-w-6xl px-4 sm:px-6 pb-10 scroll-mt-20"
+    aria-label="Classroom noise meter tool"
+  >
+    <DecibelMeter defaultThreshold={70} alarmDefault variant="classroom" />
+  </section>
+
+  <section class="mx-auto w-full max-w-6xl px-4 sm:px-6 pb-12">
+    <div class="grid gap-8 lg:grid-cols-2">
+      <article class="max-w-prose">
+        <h2 class="text-xl sm:text-2xl font-semibold tracking-tight text-ink dark:text-dark-ink">
+          Why classroom noise matters
+        </h2>
+        <p class="mt-3 leading-relaxed text-body dark:text-dark-body">
+          Children learn language by listening, and listening gets harder as a
+          room gets louder. When background noise climbs, the signal-to-noise
+          ratio collapses: the teacher’s voice has to compete with chairs,
+          chatter, traffic, and ventilation. Pupils at the back stop
+          distinguishing “p” from “t”, instructions get repeated, and the
+          lesson slows down for everyone.
+        </p>
+        <p class="mt-3 leading-relaxed text-body dark:text-dark-body">
+          The impact runs both ways. Teachers who spend years projecting over
+          a noisy room risk vocal strain and long-term voice problems — one of
+          the most common occupational complaints in the profession. A visible,
+          objective number changes the dynamic: noise stops being the
+          teacher’s opinion and becomes a shared goal the class can watch,
+          beat, and be proud of.
+        </p>
+        <p class="mt-3 leading-relaxed text-body dark:text-dark-body">
+          Because this meter is a browser page, it works on the interactive
+          whiteboard, a spare tablet, or your own laptop without an install, an
+          account, or a school IT ticket. Display mode (press
+          <kbd class="font-mono text-xs border rule px-1 rounded">F</kbd>)
+          enlarges the reading for the back row; the flashing alarm gives
+          instant feedback without you saying a word.
+        </p>
+      </article>
+
+      <article class="max-w-prose">
+        <h2 class="text-xl sm:text-2xl font-semibold tracking-tight text-ink dark:text-dark-ink">
+          A simple routine that works
+        </h2>
+        <p class="mt-3 leading-relaxed text-body dark:text-dark-body">
+          Start the meter at the beginning of the lesson and set the threshold
+          to 70 dB. Agree with the class what happens when the screen flashes —
+          a ten-second reset, a quiet minute, or simply a glance from you. The
+          visual cue does the work, so your voice stays free for teaching
+          instead of reminding.
+        </p>
+        <ul class="mt-3 list-disc pl-5 space-y-2 leading-relaxed text-body dark:text-dark-body">
+          <li>
+            <strong>Quiet start:</strong> reset the stats when the room is
+            settled so the average reflects the lesson, not the rush.
+          </li>
+          <li>
+            <strong>Track the average:</strong> a class average under 60 dB is
+            a comfortable, teachable room.
+          </li>
+          <li>
+            <strong>Celebrate the graph:</strong> the 60-second trace shows
+            calm stretches versus spikes — great for a debrief.
+          </li>
+          <li>
+            <strong>Protect your voice:</strong> if levels sit near 70 dB,
+            lower your pace instead of raising your volume.
+          </li>
+        </ul>
+        <p class="mt-3 leading-relaxed text-body dark:text-dark-body">
+          The alarm threshold, calibration, and theme are remembered per
+          device, so the setup survives a reboot — open the page and you are
+          back where you left off.
+        </p>
+      </article>
+    </div>
+  </section>
+
+  <section class="mx-auto w-full max-w-6xl px-4 sm:px-6 pb-16">
+    <div class="max-w-3xl">
+      <h2 class="text-xl sm:text-2xl font-semibold tracking-tight text-ink dark:text-dark-ink">
+        Frequently asked questions
+      </h2>
+      <div class="mt-4">
+        <FaqAccordion items={FAQ} headingLevel="h3" />
+      </div>
+      <div class="mt-8">
+        <ReferenceChart />
+      </div>
+    </div>
+  </section>
+</BaseLayout>

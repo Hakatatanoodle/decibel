@@ -1,0 +1,167 @@
+---
+import '../styles/global.css';
+import SiteHeader from '../components/SiteHeader.astro';
+import SiteFooter from '../components/SiteFooter.astro';
+import { SITE_URL, SITE_NAME } from '../config/site.js';
+
+interface Props {
+  title: string;
+  description: string;
+  /** Extra <head> content (e.g. page-specific JSON-LD). */
+  headExtra?: string;
+  /** Set true for pages that should not be indexed (404). */
+  noindex?: boolean;
+}
+
+const { title, description, headExtra = '', noindex = false } = Astro.props;
+
+const pathname = Astro.url.pathname;
+const canonical = new URL(pathname, SITE_URL).href;
+const pageTitle = title === SITE_NAME ? title : `${title} | ${SITE_NAME}`;
+const ogImage = new URL('/og-default.svg', SITE_URL).href;
+
+// Base structured data: the site as a WebApplication.
+const websiteLd = {
+  '@context': 'https://schema.org',
+  '@type': 'WebApplication',
+  name: SITE_NAME,
+  url: canonical,
+  applicationCategory: 'MultimediaApplication',
+  operatingSystem: 'Any',
+  browserRequirements: 'Requires JavaScript and microphone access',
+  description,
+  offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD' },
+};
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{pageTitle}</title>
+    <meta name="description" content={description} />
+    <link rel="canonical" href={canonical} />
+    {noindex && <meta name="robots" content="noindex, nofollow" />}
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta name="generator" content={Astro.generator} />
+
+    <!-- Open Graph / Twitter -->
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content={SITE_NAME} />
+    <meta property="og:title" content={pageTitle} />
+    <meta property="og:description" content={description} />
+    <meta property="og:url" content={canonical} />
+    <meta property="og:image" content={ogImage} />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content={pageTitle} />
+    <meta name="twitter:description" content={description} />
+    <meta name="twitter:image" content={ogImage} />
+
+    <meta name="theme-color" content="#fafafa" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#0a0a0a" media="(prefers-color-scheme: dark)" />
+
+    <script type="application/ld+json" set:html={JSON.stringify(websiteLd)} />
+    {headExtra && <Fragment set:html={headExtra} />}
+
+    <!--
+      Apply the persisted theme before first paint so toggling never causes a
+      flash of the wrong colors (and never shifts layout).
+    -->
+    <script is:inline>
+      (function () {
+        try {
+          var stored = localStorage.getItem('decibel-theme');
+          var prefersDark =
+            window.matchMedia &&
+            window.matchMedia('(prefers-color-scheme: dark)').matches;
+          var dark = stored ? stored === 'dark' : prefersDark;
+          document.documentElement.classList.toggle('dark', dark);
+        } catch (e) {
+          /* localStorage blocked — fall back to light theme */
+        }
+      })();
+    </script>
+  </head>
+  <body class="min-h-screen flex flex-col">
+    <a
+      href="#main"
+      class="sr-only focus:not-sr-only focus:absolute focus:z-50 focus:top-2 focus:left-2 focus:bg-ink focus:text-white focus:px-3 focus:py-2 focus:rounded-md"
+    >
+      Skip to content
+    </a>
+    <SiteHeader />
+    <main id="main" class="flex-1 w-full">
+      <slot />
+    </main>
+    <SiteFooter />
+
+    <!-- Theme + keyboard shortcuts shared across all pages. -->
+    <script>
+      const STORAGE_KEY = 'decibel-theme';
+
+      function currentTheme(): 'dark' | 'light' {
+        return document.documentElement.classList.contains('dark')
+          ? 'dark'
+          : 'light';
+      }
+
+      function setTheme(next: 'dark' | 'light') {
+        document.documentElement.classList.toggle('dark', next === 'dark');
+        try {
+          localStorage.setItem(STORAGE_KEY, next);
+        } catch (e) {
+          /* ignore */
+        }
+        document.querySelectorAll<HTMLButtonElement>('[data-theme-toggle]').forEach((btn) => {
+          btn.setAttribute('aria-pressed', String(next === 'dark'));
+          btn.setAttribute(
+            'aria-label',
+            next === 'dark' ? 'Switch to light theme' : 'Switch to dark theme'
+          );
+        });
+      }
+
+      function toggleTheme() {
+        setTheme(currentTheme() === 'dark' ? 'light' : 'dark');
+      }
+
+      // Sync button state with the theme applied by the inline head script.
+      setTheme(currentTheme());
+
+      document.addEventListener('click', (event) => {
+        const target = event.target as HTMLElement | null;
+        if (target?.closest('[data-theme-toggle]')) {
+          toggleTheme();
+        }
+      });
+
+      function isTyping(): boolean {
+        const el = document.activeElement as HTMLElement | null;
+        if (!el) return false;
+        const tag = el.tagName;
+        return (
+          tag === 'INPUT' ||
+          tag === 'TEXTAREA' ||
+          tag === 'SELECT' ||
+          el.isContentEditable
+        );
+      }
+
+      // Expose for component-level shortcut handling (Space / R / F).
+      (window as any).__decibelIsTyping = isTyping;
+      (window as any).__decibelToggleTheme = toggleTheme;
+
+      document.addEventListener('keydown', (event) => {
+        if (event.metaKey || event.ctrlKey || event.altKey) return;
+        if (isTyping()) return;
+
+        // D = toggle dark mode.
+        if (event.key === 'd' || event.key === 'D') {
+          event.preventDefault();
+          toggleTheme();
+        }
+      });
+    </script>
+  </body>
+</html>

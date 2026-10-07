@@ -1,0 +1,23 @@
+# Cloudflare Pages response headers
+# https://developers.cloudflare.com/pages/platform/headers/
+#
+# NOTE: _headers matches on path only — it cannot target *.pages.dev
+# specifically, and Cloudflare applies this file to EVERY deployment of the
+# project (including a custom domain attached later). While the production
+# domain is still TBD the whole site only exists on *.pages.dev, so a blanket
+# noindex is the correct, safe behaviour right now.
+#
+# Before attaching a production custom domain you must do one of:
+#   1. remove the `X-Robots-Tag: noindex` line below, or
+#   2. add a Cloudflare Transform Rule on the custom hostname that removes
+#      the X-Robots-Tag response header.
+# Leaving it in place would keep the live site out of search engines.
+/*
+  X-Robots-Tag: noindex
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: strict-origin-when-cross-origin
+  # Explicitly allow the microphone (needed by the meter) and block the rest.
+  Permissions-Policy: geolocation=(), camera=(), microphone=(self)
+
+/_astro/*
+  Cache-Control: public, max-age=31536000, immutable

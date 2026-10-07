@@ -1,0 +1,147 @@
+---
+import { NAV_LINKS, SITE_NAME, SITE_TAGLINE } from '../config/site.js';
+const pathname = Astro.url.pathname;
+
+function isActive(href: string): boolean {
+  if (href === '/') return pathname === '/';
+  return pathname.startsWith(href);
+}
+---
+
+<header class="sticky top-0 z-40 w-full border-b rule bg-canvas/85 backdrop-blur-md">
+  <div class="mx-auto w-full max-w-6xl px-4 sm:px-6">
+    <div class="flex h-14 items-center justify-between gap-4">
+      <a
+        href="/"
+        class="flex items-center gap-2 shrink-0 rounded-md"
+        aria-label={`${SITE_NAME} home`}
+      >
+        <svg width="22" height="22" viewBox="0 0 64 64" aria-hidden="true" class="shrink-0">
+          <defs>
+            <linearGradient id="brand-g" x1="0" y1="1" x2="1" y2="0">
+              <stop offset="0" stop-color="#0070f3"></stop>
+              <stop offset="1" stop-color="#7928ca"></stop>
+            </linearGradient>
+          </defs>
+          <rect width="64" height="64" rx="14" fill="url(#brand-g)"></rect>
+          <g stroke="#fff" stroke-width="4" stroke-linecap="round">
+            <path d="M16 40V24"></path>
+            <path d="M25 46V18"></path>
+            <path d="M34 38V26"></path>
+            <path d="M43 43V21"></path>
+            <path d="M52 36V28"></path>
+          </g>
+        </svg>
+        <span class="font-semibold tracking-tight text-ink dark:text-dark-ink">{SITE_NAME}</span>
+        <span class="hidden sm:inline text-xs text-mute dark:text-dark-mute font-mono">/{SITE_TAGLINE}</span>
+      </a>
+
+      <nav class="hidden md:flex items-center gap-1" aria-label="Main">
+        {
+          NAV_LINKS.map((link) => (
+            <a
+              href={link.href}
+              aria-current={isActive(link.href) ? 'page' : undefined}
+              class:list={[
+                'px-2.5 py-1.5 text-sm rounded-md transition-colors',
+                isActive(link.href)
+                  ? 'text-ink dark:text-dark-ink font-medium bg-hairline-soft dark:bg-dark-surface'
+                  : 'text-body dark:text-dark-body hover:text-ink dark:hover:text-dark-ink hover:bg-hairline-soft dark:hover:bg-dark-surface',
+              ]}
+            >
+              {link.label}
+            </a>
+          ))
+        }
+      </nav>
+
+      <div class="flex items-center gap-2">
+        <button
+          type="button"
+          data-theme-toggle
+          aria-pressed="false"
+          aria-label="Switch to dark theme"
+          class="inline-flex h-9 w-9 items-center justify-center rounded-full border rule bg-surface dark:bg-dark-surface text-ink dark:text-dark-ink hover:bg-hairline-soft dark:hover:bg-dark-canvas transition-colors"
+        >
+          <!-- sun -->
+          <svg class="dark:hidden" width="16" height="16" viewBox="0 0 24 24" fill="none"
+            stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
+            <circle cx="12" cy="12" r="4"></circle>
+            <path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"></path>
+          </svg>
+          <!-- moon -->
+          <svg class="hidden dark:block" width="16" height="16" viewBox="0 0 24 24" fill="none"
+            stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
+            <path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8Z"></path>
+          </svg>
+        </button>
+
+        <button
+          type="button"
+          data-menu-toggle
+          aria-expanded="false"
+          aria-controls="mobile-nav"
+          aria-label="Open menu"
+          class="md:hidden inline-flex h-9 w-9 items-center justify-center rounded-full border rule bg-surface dark:bg-dark-surface text-ink dark:text-dark-ink"
+        >
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+            stroke-width="2" stroke-linecap="round" aria-hidden="true">
+            <path d="M4 7h16M4 12h16M4 17h16"></path>
+          </svg>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Mobile menu -->
+  <nav
+    id="mobile-nav"
+    data-menu
+    hidden
+    aria-label="Main"
+    class="md:hidden border-t rule bg-canvas dark:bg-dark-canvas"
+  >
+    <div class="mx-auto w-full max-w-6xl px-4 sm:px-6 py-2 flex flex-col">
+      {
+        NAV_LINKS.map((link) => (
+          <a
+            href={link.href}
+            aria-current={isActive(link.href) ? 'page' : undefined}
+            class:list={[
+              'px-2 py-2.5 text-sm rounded-md',
+              isActive(link.href)
+                ? 'text-ink dark:text-dark-ink font-medium bg-hairline-soft dark:bg-dark-surface'
+                : 'text-body dark:text-dark-body',
+            ]}
+          >
+            {link.label}
+          </a>
+        ))
+      }
+    </div>
+  </nav>
+</header>
+
+<script>
+  const toggle = document.querySelector<HTMLButtonElement>('[data-menu-toggle]');
+  const menu = document.querySelector<HTMLElement>('[data-menu]');
+
+  function setMenu(open: boolean) {
+    if (!toggle || !menu) return;
+    menu.hidden = !open;
+    toggle.setAttribute('aria-expanded', String(open));
+    toggle.setAttribute('aria-label', open ? 'Close menu' : 'Open menu');
+  }
+
+  toggle?.addEventListener('click', () => {
+    setMenu(menu?.hidden ?? true);
+  });
+
+  // Esc closes the mobile menu (also handled globally by the meter).
+  document.addEventListener('keydown', (event) => {
+    if (event.key === 'Escape' && menu && !menu.hidden) {
+      setMenu(false);
+      toggle?.focus();
+    }
+  });
+</script>

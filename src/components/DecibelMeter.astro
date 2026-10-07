@@ -1,0 +1,1014 @@
+---
+import ReferenceChart from './ReferenceChart.astro';
+
+/**
+ * Live decibel meter: getUserMedia -> AnalyserNode -> RMS -> dB.
+ * Everything runs locally in the browser; no audio ever leaves the device.
+ */
+interface Props {
+  /** Starting alarm threshold in dB (85 default, 70 classroom). */
+  defaultThreshold?: number;
+  /** Whether the visual alarm starts enabled. */
+  alarmDefault?: boolean;
+  /** Namespaces threshold/alarm storage so pages keep their own defaults. */
+  variant?: string;
+}
+
+const { defaultThreshold = 85, alarmDefault = false, variant = 'default' } =
+  Astro.props;
+---
+
+<section class="not-prose" data-meter data-variant={variant} data-display-mode="off">
+  <div class="grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,340px)]">
+    <!-- Main meter panel -->
+    <div
+      class="relative rounded-2xl border rule bg-surface dark:bg-dark-surface overflow-hidden flex flex-col"
+      data-meter-card
+    >
+      <div class="flex items-center justify-between gap-3 px-4 sm:px-5 py-3 border-b rule">
+        <div class="flex items-center gap-2 min-w-0">
+          <span
+            class="inline-flex h-2 w-2 rounded-full bg-faint transition-colors"
+            data-dot
+            aria-hidden="true"></span>
+          <span
+            class="text-xs font-mono uppercase tracking-widest text-mute dark:text-dark-mute truncate"
+            data-status
+            role="status">Ready</span
+          >
+        </div>
+        <span class="text-[11px] font-mono text-faint shrink-0">on-device</span>
+      </div>
+
+      <!-- Gauge + reading -->
+      <div class="px-4 sm:px-6 pt-5 pb-4 flex flex-col items-center">
+        <div class="relative w-full max-w-[280px] aspect-square" data-gauge>
+          <svg viewBox="0 0 200 200" class="w-full h-full" aria-hidden="true">
+            <g transform="rotate(135 100 100)">
+              <circle
+                cx="100"
+                cy="100"
+                r="80"
+                fill="none"
+                stroke="currentColor"
+                class="text-hairline dark:text-dark-hairline"
+                stroke-width="13"
+                stroke-linecap="round"
+                pathLength="1000"
+                stroke-dasharray="750 1000"></circle>
+              <circle
+                data-gauge-value
+                cx="100"
+                cy="100"
+                r="80"
+                fill="none"
+                stroke="var(--color-accent)"
+                stroke-width="13"
+                stroke-linecap="round"
+                pathLength="1000"
+                stroke-dasharray="0 1000"></circle>
+            </g>
+            <line
+              data-threshold-tick
+              x1="100"
+              y1="13"
+              x2="100"
+              y2="27"
+              stroke="var(--color-danger)"
+              stroke-width="3"
+              stroke-linecap="round"
+              transform="rotate(426 100 100)"></line>
+          </svg>
+
+          <div class="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+            <div class="flex items-baseline gap-1">
+              <span
+                class="text-6xl sm:text-7xl font-semibold leading-none tabular-nums tracking-tight text-ink dark:text-dark-ink"
+                data-db>—</span
+              >
+              <span class="text-base font-medium text-mute dark:text-dark-mute">dB</span>
+            </div>
+            <span
+              class="mt-2 text-xs font-mono uppercase tracking-widest px-2 py-0.5 rounded-full border rule text-mute dark:text-dark-mute"
+              data-band>idle</span
+            >
+          </div>
+        </div>
+      </div>
+      <!-- Min / Avg / Max -->
+      <div class="px-4 sm:px-6">
+        <div class="grid grid-cols-3 gap-2 text-center">
+          {
+            ['min', 'avg', 'max'].map((k) => (
+              <div class="rounded-xl border rule bg-canvas dark:bg-dark-canvas py-2.5">
+                <div class="text-[10px] font-mono uppercase tracking-widest text-faint">{k}</div>
+                <div
+                  class="mt-0.5 text-lg font-semibold tabular-nums text-ink dark:text-dark-ink"
+                  data-stat={k}
+                >
+                  —
+                </div>
+              </div>
+            ))
+          }
+        </div>
+      </div>
+
+      <!-- 60s graph (fixed height = no layout shift) -->
+      <div class="px-4 sm:px-6 pt-4">
+        <div
+          class="relative h-40 rounded-xl border rule bg-canvas dark:bg-dark-canvas overflow-hidden"
+          data-graph-wrap
+        >
+          <canvas data-graph class="block w-full h-full" aria-hidden="true"></canvas>
+          <span class="absolute top-1.5 left-2 text-[10px] font-mono text-faint select-none"
+            >last 60 s</span
+          >
+        </div>
+      </div>
+
+      <!-- Controls + error slot -->
+      <div class="px-4 sm:px-6 pt-4 pb-5 mt-auto">
+        <div class="flex flex-wrap items-center gap-2">
+          <button
+            type="button"
+            data-start
+            class="inline-flex items-center justify-center gap-2 h-10 px-5 rounded-full bg-accent hover:bg-accent-hover text-on-accent text-sm font-medium transition-colors"
+          >
+            <svg
+              width="14"
+              height="14"
+              viewBox="0 0 24 24"
+              fill="currentColor"
+              aria-hidden="true"
+              data-icon-play><path d="M8 5v14l11-7z"></path></svg
+            >
+            <svg
+              width="14"
+              height="14"
+              viewBox="0 0 24 24"
+              fill="currentColor"
+              aria-hidden="true"
+              class="hidden"
+              data-icon-pause><path d="M6 5h4v14H6zM14 5h4v14h-4z"></path></svg
+            >
+            <span data-start-label>Start measuring</span>
+          </button>
+
+          <button
+            type="button"
+            data-reset
+            class="inline-flex items-center justify-center h-10 px-4 rounded-full border rule text-sm font-medium text-ink dark:text-dark-ink hover:bg-hairline-soft dark:hover:bg-dark-canvas transition-colors"
+          >
+            Reset
+          </button>
+
+          <button
+            type="button"
+            data-display
+            aria-pressed="false"
+            class="inline-flex items-center justify-center gap-2 h-10 px-4 rounded-full border rule text-sm font-medium text-ink dark:text-dark-ink hover:bg-hairline-soft dark:hover:bg-dark-canvas transition-colors"
+          >
+            <svg
+              width="14"
+              height="14"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              aria-hidden="true"
+            >
+              <path
+                d="M4 9V5a1 1 0 0 1 1-1h4M20 9V5a1 1 0 0 0-1-1h-4M4 15v4a1 1 0 0 0 1 1h4M20 15v4a1 1 0 0 1-1 1h-4"
+              ></path>
+            </svg>
+            <span data-display-label>Display mode</span>
+          </button>
+        </div>
+
+        <!-- Error card (shown on permission/hardware failure) -->
+        <div
+          class="hidden mt-3 rounded-xl border border-danger/40 bg-danger/5 px-4 py-3"
+          data-error
+          role="alert"
+        >
+          <p class="text-sm font-semibold text-danger" data-error-title>Microphone blocked</p>
+          <p class="mt-1 text-sm text-body dark:text-dark-body" data-error-msg></p>
+          <button
+            type="button"
+            data-error-retry
+            class="mt-2 text-sm font-medium text-accent hover:text-accent-hover underline underline-offset-2"
+          >
+            Try again
+          </button>
+        </div>
+        <!-- Shortcuts -->
+        <div class="mt-4 flex flex-wrap items-center gap-x-3 gap-y-1.5">
+          {
+            [
+              ['Space', 'start / pause'],
+              ['R', 'reset'],
+              ['F', 'display mode'],
+              ['D', 'theme'],
+              ['Esc', 'exit'],
+            ].map(([key, desc]) => (
+              <span class="inline-flex items-center gap-1.5 text-[11px] text-faint">
+                <kbd class="font-mono px-1.5 py-0.5 rounded border rule bg-canvas dark:bg-dark-canvas text-mute dark:text-dark-mute">
+                  {key}
+                </kbd>
+                {desc}
+              </span>
+            ))
+          }
+        </div>
+      </div>
+
+      <!-- Alarm overlay (visual flash when over threshold) -->
+      <div
+        class="pointer-events-none absolute inset-0 rounded-2xl hidden"
+        data-alarm-overlay
+        aria-hidden="true"
+      ></div>
+    </div>
+
+    <!-- Side panel (hidden in display mode) -->
+    <div class="space-y-4 meter-aside">
+      <!-- Calibration -->
+      <div class="rounded-2xl border rule bg-surface dark:bg-dark-surface p-4 sm:p-5">
+        <div class="flex items-baseline justify-between gap-2">
+          <h3 class="text-sm font-semibold text-ink dark:text-dark-ink">Calibration</h3>
+          <span
+            class="text-xs font-mono tabular-nums text-mute dark:text-dark-mute"
+            data-calib-value>+0 dB</span
+          >
+        </div>
+        <p class="mt-1 text-xs leading-relaxed text-mute dark:text-dark-mute">
+          Offset the reading to match a trusted SPL meter held next to this device.
+        </p>
+        <input
+          type="range"
+          min="-30"
+          max="30"
+          step="1"
+          value="0"
+          data-calib
+          aria-label="Calibration offset in decibels"
+          class="mt-3 w-full accent-accent"
+        />
+        <div class="mt-1 flex justify-between text-[10px] font-mono text-faint">
+          <span>−30</span><span>0</span><span>+30</span>
+        </div>
+        <button
+          type="button"
+          data-calib-reset
+          class="mt-2 text-xs font-medium text-accent hover:text-accent-hover underline underline-offset-2"
+        >
+          Reset calibration
+        </button>
+      </div>
+
+      <!-- Threshold alarm -->
+      <div class="rounded-2xl border rule bg-surface dark:bg-dark-surface p-4 sm:p-5">
+        <div class="flex items-center justify-between gap-3">
+          <h3 class="text-sm font-semibold text-ink dark:text-dark-ink">Alarm threshold</h3>
+          <label class="inline-flex items-center gap-2 cursor-pointer">
+            <input
+              type="checkbox"
+              data-alarm-toggle
+              checked={alarmDefault}
+              class="h-4 w-4 accent-accent"
+            />
+            <span class="text-xs text-mute dark:text-dark-mute">enabled</span>
+          </label>
+        </div>
+        <div class="mt-3 flex items-center gap-3">
+          <input
+            type="range"
+            min="40"
+            max="110"
+            step="1"
+            value={defaultThreshold}
+            data-threshold
+            aria-label="Alarm threshold in decibels"
+            class="w-full accent-accent"
+          />
+          <span
+            class="w-16 shrink-0 text-right text-sm font-mono font-semibold tabular-nums text-ink dark:text-dark-ink"
+            data-threshold-value>{defaultThreshold} dB</span
+          >
+        </div>
+        <p class="mt-2 text-xs leading-relaxed text-mute dark:text-dark-mute">
+          When the level stays above the limit, the panel flashes red.
+        </p>
+        <p
+          class="mt-2 hidden text-xs font-semibold text-danger"
+          data-alarm-msg
+          aria-live="polite"
+        >
+          Over the limit
+        </p>
+      </div>
+
+      <ReferenceChart />
+    </div>
+  </div>
+</section>
+
+<style>
+  [data-meter] {
+    position: relative;
+  }
+
+  /* Alarm flash: visible in both themes, honours reduced motion. */
+  [data-alarm-overlay] {
+    display: none;
+    box-shadow: inset 0 0 0 3px var(--color-danger);
+    background: color-mix(in oklab, var(--color-danger) 8%, transparent);
+  }
+
+  [data-meter][data-alarm='on'] [data-alarm-overlay] {
+    display: block;
+    animation: alarm-pulse 900ms ease-in-out infinite;
+  }
+
+  @keyframes alarm-pulse {
+    0%,
+    100% {
+      opacity: 0.25;
+    }
+    50% {
+      opacity: 1;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    [data-meter][data-alarm='on'] [data-alarm-overlay] {
+      animation: none;
+      opacity: 1;
+    }
+  }
+
+  /* ---- Full-screen display mode (F key / button) ------------------------- */
+  :global(html.display-mode-on) :global(body) {
+    overflow: hidden;
+  }
+
+  [data-meter][data-display-mode='on'] {
+    position: fixed;
+    inset: 0;
+    z-index: 70;
+    overflow: auto;
+    background-color: var(--page-bg);
+    padding: 1rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  [data-meter][data-display-mode='on'] > div {
+    width: min(100%, 68rem);
+  }
+
+  [data-meter][data-display-mode='on'] .meter-aside {
+    display: none;
+  }
+
+  [data-meter][data-display-mode='on'] .grid {
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
+
+  [data-meter][data-display-mode='on'] [data-db] {
+    font-size: clamp(5rem, 28vw, 16rem);
+  }
+
+  [data-meter][data-display-mode='on'] [data-gauge] {
+    max-width: min(78vw, 460px);
+  }
+
+  [data-meter][data-display-mode='on'] [data-graph-wrap] {
+    height: 20rem;
+  }
+</style>
+
+<script>
+  type Band = { max: number; label: string; key: string };
+
+  const BANDS: Band[] = [
+    { max: 40, label: 'Quiet', key: 'quiet' },
+    { max: 70, label: 'Moderate', key: 'moderate' },
+    { max: 85, label: 'Loud', key: 'loud' },
+    { max: 121, label: 'Harmful', key: 'harmful' },
+  ];
+
+  const BAND_COLORS: Record<string, string> = {
+    idle: 'var(--color-accent)',
+    quiet: 'var(--color-band-quiet)',
+    moderate: 'var(--color-band-moderate)',
+    loud: 'var(--color-band-loud)',
+    harmful: 'var(--color-band-danger)',
+  };
+
+  const MAX_DB = 120;
+  /** Maps mic dBFS onto an approximate SPL scale; calibration shifts it. */
+  const BASE_OFFSET = 90;
+  const GRAPH_WINDOW_MS = 60_000;
+  const SAMPLE_MS = 250;
+  const GAUGE_SWEEP = 750; // pathLength units covering the 270° arc
+
+  const root = document.querySelector<HTMLElement>('[data-meter]');
+  if (root) {
+    const $ = <T extends HTMLElement = HTMLElement>(sel: string): T | null =>
+      root.querySelector<T>(sel);
+    const $$ = <T extends HTMLElement = HTMLElement>(sel: string): T[] =>
+      Array.from(root.querySelectorAll<T>(sel));
+
+    const variant = root.dataset.variant || 'default';
+    const LS = {
+      calib: 'decibel-calibration',
+      threshold: `decibel-threshold:${variant}`,
+      alarm: `decibel-alarm:${variant}`,
+    };
+
+    const readLs = (key: string): string | null => {
+      try {
+        return localStorage.getItem(key);
+      } catch {
+        return null;
+      }
+    };
+    const writeLs = (key: string, value: string) => {
+      try {
+        localStorage.setItem(key, value);
+      } catch {
+        /* storage unavailable */
+      }
+    };
+
+    const clamp = (v: number, lo: number, hi: number) =>
+      Math.min(hi, Math.max(lo, v));
+
+    const bandFor = (db: number): Band =>
+      BANDS.find((b) => db < b.max) ?? BANDS[BANDS.length - 1];
+    // --- element refs -------------------------------------------------------
+    const el = {
+      status: $('[data-status]'),
+      dot: $('[data-dot]'),
+      db: $('[data-db]'),
+      band: $('[data-band]'),
+      gaugeValue: $('[data-gauge-value]'),
+      thresholdTick: $('[data-threshold-tick]'),
+      graph: $('[data-graph]'),
+      start: $('[data-start]'),
+      startLabel: $('[data-start-label]'),
+      iconPlay: $('[data-icon-play]'),
+      iconPause: $('[data-icon-pause]'),
+      reset: $('[data-reset]'),
+      display: $('[data-display]'),
+      displayLabel: $('[data-display-label]'),
+      error: $('[data-error]'),
+      errorTitle: $('[data-error-title]'),
+      errorMsg: $('[data-error-msg]'),
+      errorRetry: $('[data-error-retry]'),
+      calib: $<HTMLInputElement>('[data-calib]')[0],
+      calibValue: $('[data-calib-value]'),
+      calibReset: $('[data-calib-reset]'),
+      threshold: $<HTMLInputElement>('[data-threshold]')[0],
+      thresholdValue: $('[data-threshold-value]'),
+      alarmToggle: $<HTMLInputElement>('[data-alarm-toggle]')[0],
+      alarmMsg: $('[data-alarm-msg]'),
+      statMin: $('[data-stat="min"]'),
+      statAvg: $('[data-stat="avg"]'),
+      statMax: $('[data-stat="max"]'),
+    } as const;
+
+    const statEls = { min: el.statMin, avg: el.statAvg, max: el.statMax };
+
+    // --- persisted settings -------------------------------------------------
+    let calibration = Number(readLs(LS.calib) ?? 0);
+    if (!Number.isFinite(calibration)) calibration = 0;
+
+    const thresholdDefault =
+      Number(readLs(LS.threshold) ?? el.threshold?.value ?? 85) || 85;
+    let alarmEnabled =
+      (readLs(LS.alarm) ?? (el.alarmToggle?.checked ? '1' : '0')) === '1';
+
+    // --- runtime state ------------------------------------------------------
+    let stream: MediaStream | null = null;
+    let ctx: AudioContext | null = null;
+    let analyser: AnalyserNode | null = null;
+    let buf: Float32Array | null = null;
+    let rafId = 0;
+    let running = false;
+    let smoothed = 0;
+    let hasReading = false;
+    let stats = { min: Infinity, max: -Infinity, sum: 0, n: 0 };
+    let samples: { t: number; db: number }[] = [];
+    let lastSampleAt = 0;
+    let alarmOn = false;
+    let lastRendered = -1;
+
+    const currentThreshold = () =>
+      clamp(Number(el.threshold?.value ?? 85), 40, 110);
+
+    // --- UI helpers ---------------------------------------------------------
+    const setStatus = (text: string, tone: 'idle' | 'live' | 'warn') => {
+      if (el.status) el.status.textContent = text;
+      if (el.dot) {
+        el.dot.classList.toggle('bg-ok', tone === 'live');
+        el.dot.classList.toggle('bg-danger', tone === 'warn');
+        el.dot.classList.toggle('bg-faint', tone === 'idle');
+        if (tone !== 'live') el.dot.style.backgroundColor = '';
+      }
+    };
+    const showError = (title: string, msg: string) => {
+      if (!el.error || !el.errorTitle || !el.errorMsg) return;
+      el.errorTitle.textContent = title;
+      el.errorMsg.textContent = msg;
+      el.error.classList.remove('hidden');
+      setStatus('Error', 'warn');
+    };
+
+    const hideError = () => el.error?.classList.add('hidden');
+
+    const setAlarmState = (on: boolean) => {
+      if (alarmOn === on) return;
+      alarmOn = on;
+      root!.dataset.alarm = on ? 'on' : 'off';
+      el.alarmMsg?.classList.toggle('hidden', !on);
+      if (on) setStatus('Above threshold', 'warn');
+      else if (running) setStatus('Measuring', 'live');
+    };
+
+    // --- threshold / calibration / alarm controls ---------------------------
+    const setThreshold = (value: number) => {
+      const v = clamp(Math.round(value), 40, 110);
+      if (el.threshold && Number(el.threshold.value) !== v)
+        el.threshold.value = String(v);
+      if (el.thresholdValue) el.thresholdValue.textContent = `${v} dB`;
+      if (el.thresholdTick) {
+        // 0 dB sits at rotate(225); the arc sweeps a further 270° to 120 dB.
+        const deg = 225 + (v / MAX_DB) * 270;
+        el.thresholdTick.setAttribute('transform', `rotate(${deg} 100 100)`);
+      }
+      writeLs(LS.threshold, String(v));
+      drawGraph();
+    };
+
+    const setAlarmEnabled = (on: boolean) => {
+      alarmEnabled = on;
+      if (el.alarmToggle && el.alarmToggle.checked !== on)
+        el.alarmToggle.checked = on;
+      writeLs(LS.alarm, on ? '1' : '0');
+      if (!on) setAlarmState(false);
+      drawGraph();
+    };
+
+    const setCalibration = (value: number) => {
+      const v = clamp(Math.round(value), -30, 30);
+      calibration = v;
+      if (el.calib && Number(el.calib.value) !== v) el.calib.value = String(v);
+      if (el.calibValue)
+        el.calibValue.textContent = `${v > 0 ? '+' : ''}${v} dB`;
+      writeLs(LS.calib, String(v));
+      if (hasReading) render(smoothed, true);
+    };
+    // --- rendering ----------------------------------------------------------
+    function render(db: number, force = false) {
+      hasReading = true;
+      const rounded = Math.round(db);
+      if (!force && rounded === lastRendered) return;
+      lastRendered = rounded;
+
+      const band = bandFor(db);
+      if (el.db) el.db.textContent = String(rounded);
+      if (el.band) {
+        el.band.textContent = band.label;
+        el.band.style.color = BAND_COLORS[band.key];
+        el.band.style.borderColor = `color-mix(in oklab, ${
+          BAND_COLORS[band.key]
+        } 45%, transparent)`;
+      }
+      if (el.gaugeValue) {
+        const frac = clamp(db / MAX_DB, 0, 1);
+        el.gaugeValue.setAttribute(
+          'stroke-dasharray',
+          `${(frac * GAUGE_SWEEP).toFixed(1)} 1000`
+        );
+        el.gaugeValue.setAttribute('stroke', BAND_COLORS[band.key]);
+      }
+      if (el.dot && running) {
+        el.dot.style.backgroundColor = BAND_COLORS[band.key];
+      }
+
+      const s = stats;
+      if (s.n > 0) {
+        if (statEls.min) statEls.min.textContent = String(Math.round(s.min));
+        if (statEls.avg) statEls.avg.textContent = (s.sum / s.n).toFixed(1);
+        if (statEls.max) statEls.max.textContent = String(Math.round(s.max));
+      }
+
+      if (alarmEnabled && running && db >= currentThreshold())
+        setAlarmState(true);
+      else if (alarmOn) setAlarmState(false);
+    }
+
+    // --- 60s graph ----------------------------------------------------------
+    function drawGraph() {
+      const canvas = el.graph as HTMLCanvasElement | null;
+      if (!canvas) return;
+      const rect = canvas.getBoundingClientRect();
+      if (rect.width === 0 || rect.height === 0) return;
+
+      const dpr = Math.min(window.devicePixelRatio || 1, 2);
+      const w = Math.round(rect.width * dpr);
+      const h = Math.round(rect.height * dpr);
+      if (canvas.width !== w || canvas.height !== h) {
+        canvas.width = w;
+        canvas.height = h;
+      }
+      const g = canvas.getContext('2d');
+      if (!g) return;
+      g.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+      const W = rect.width;
+      const H = rect.height;
+      const padT = 10;
+      const padB = 8;
+      const padL = 4;
+      const plotH = H - padT - padB;
+
+      const isDark = document.documentElement.classList.contains('dark');
+      const cs = getComputedStyle(document.documentElement);
+      const gridColor =
+        cs
+          .getPropertyValue(isDark ? '--color-dark-hairline' : '--color-hairline')
+          .trim() || '#ebebeb';
+
+      g.clearRect(0, 0, W, H);
+
+      const yFor = (db: number) =>
+        padT + plotH - (clamp(db, 0, MAX_DB) / MAX_DB) * plotH;
+
+      g.strokeStyle = gridColor;
+      g.lineWidth = 1;
+      g.setLineDash([]);
+      for (const tick of [0, 30, 60, 90, 120]) {
+        const y = Math.round(yFor(tick)) + 0.5;
+        g.beginPath();
+        g.moveTo(padL, y);
+        g.lineTo(W - padL, y);
+        g.stroke();
+      }
+
+      if (alarmEnabled) {
+        const dangerColor =
+          cs.getPropertyValue('--color-danger').trim() || '#ee0000';
+        const y = Math.round(yFor(currentThreshold())) + 0.5;
+        g.strokeStyle = dangerColor;
+        g.setLineDash([4, 4]);
+        g.beginPath();
+        g.moveTo(padL, y);
+        g.lineTo(W - padL, y);
+        g.stroke();
+        g.setLineDash([]);
+      }
+      // level trace
+      const now = performance.now();
+      const start = now - GRAPH_WINDOW_MS;
+      const pts = samples.filter((s) => s.t >= start);
+      if (pts.length > 1) {
+        const accent =
+          cs.getPropertyValue('--color-accent').trim() || '#0070f3';
+        const xFor = (t: number) =>
+          padL + ((t - start) / GRAPH_WINDOW_MS) * (W - padL * 2);
+
+        // soft fill under the line (globalAlpha keeps it engine-independent)
+        g.save();
+        g.globalAlpha = 0.12;
+        g.fillStyle = accent;
+        g.beginPath();
+        pts.forEach((p, i) => {
+          const x = xFor(p.t);
+          const y = yFor(p.db);
+          if (i === 0) g.moveTo(x, y);
+          else g.lineTo(x, y);
+        });
+        g.lineTo(xFor(pts[pts.length - 1].t), padT + plotH);
+        g.lineTo(xFor(pts[0].t), padT + plotH);
+        g.closePath();
+        g.fill();
+        g.restore();
+
+        // the trace itself
+        g.beginPath();
+        pts.forEach((p, i) => {
+          const x = xFor(p.t);
+          const y = yFor(p.db);
+          if (i === 0) g.moveTo(x, y);
+          else g.lineTo(x, y);
+        });
+        g.strokeStyle = accent;
+        g.lineWidth = 2;
+        g.lineJoin = 'round';
+        g.stroke();
+      }
+    }
+
+    // --- audio lifecycle ----------------------------------------------------
+    async function stopMeter() {
+      running = false;
+      cancelAnimationFrame(rafId);
+      if (stream) {
+        stream.getTracks().forEach((t) => t.stop());
+        stream = null;
+      }
+      if (ctx && ctx.state !== 'closed') {
+        try {
+          await ctx.close();
+        } catch {
+          /* already closing */
+        }
+      }
+      ctx = null;
+      analyser = null;
+      buf = null;
+      el.iconPlay?.classList.remove('hidden');
+      el.iconPause?.classList.add('hidden');
+      if (el.startLabel) el.startLabel.textContent = 'Start measuring';
+      setAlarmState(false);
+      if (el.dot) el.dot.style.backgroundColor = '';
+      setStatus('Paused', 'idle');
+    }
+
+    async function startMeter() {
+      hideError();
+
+      if (!window.isSecureContext) {
+        showError(
+          'Secure connection required',
+          'Microphone access needs HTTPS (or localhost). Open this page over a secure connection and try again.'
+        );
+        return;
+      }
+      if (!navigator.mediaDevices?.getUserMedia) {
+        showError(
+          'Browser not supported',
+          'This browser does not expose microphone access. Try the latest Chrome, Edge, Firefox or Safari.'
+        );
+        return;
+      }
+
+      setStatus('Requesting microphone…', 'idle');
+      try {
+        stream = await navigator.mediaDevices.getUserMedia({
+          audio: {
+            echoCancellation: false,
+            noiseSuppression: false,
+            autoGainControl: false,
+          },
+        });
+      } catch (err) {
+        const name = (err as DOMException)?.name ?? '';
+        if (name === 'NotAllowedError' || name === 'PermissionDeniedError') {
+          showError(
+            'Microphone permission denied',
+            'Allow microphone access for this site in your browser’s address bar, then press Try again.'
+          );
+        } else if (name === 'NotFoundError' || name === 'DevicesNotFoundError') {
+          showError(
+            'No microphone found',
+            'Plug in or enable a microphone, then press Try again.'
+          );
+        } else if (name === 'NotReadableError' || name === 'TrackStartError') {
+          showError(
+            'Microphone is in use',
+            'Another application is holding the microphone. Close it and press Try again.'
+          );
+        } else {
+          showError(
+            'Could not start the meter',
+            'Something went wrong while opening the microphone. Press Try again, or reload the page.'
+          );
+        }
+        return;
+      }
+
+      try {
+        const AC: typeof AudioContext =
+          window.AudioContext ||
+          (window as unknown as { webkitAudioContext: typeof AudioContext })
+            .webkitAudioContext;
+        ctx = new AC();
+        if (ctx.state === 'suspended') await ctx.resume();
+        const source = ctx.createMediaStreamSource(stream);
+        analyser = ctx.createAnalyser();
+        analyser.fftSize = 2048;
+        source.connect(analyser);
+        buf = new Float32Array(analyser.fftSize);
+      } catch {
+        await stopMeter();
+        showError(
+          'Web Audio unavailable',
+          'This browser could not initialise audio analysis. Try a different browser or device.'
+        );
+        return;
+      }
+
+      running = true;
+      hideError();
+      el.iconPlay?.classList.add('hidden');
+      el.iconPause?.classList.remove('hidden');
+      if (el.startLabel) el.startLabel.textContent = 'Pause';
+      setStatus('Measuring', 'live');
+      loop();
+    }
+
+    function loop() {
+      if (!running || !analyser || !buf) return;
+      rafId = requestAnimationFrame(loop);
+
+      analyser.getFloatTimeDomainData(buf as Float32Array<ArrayBuffer>);
+      let sum = 0;
+      for (let i = 0; i < buf.length; i++) sum += buf[i] * buf[i];
+      const rms = Math.sqrt(sum / buf.length);
+      const dbfs = 20 * Math.log10(Math.max(rms, 1e-7));
+      const level = clamp(dbfs + BASE_OFFSET + calibration, 0, MAX_DB);
+
+      // exponential smoothing: steady needle, spikes still visible
+      smoothed = hasReading ? smoothed + (level - smoothed) * 0.25 : level;
+
+      stats.min = Math.min(stats.min, smoothed);
+      stats.max = Math.max(stats.max, smoothed);
+      stats.sum += smoothed;
+      stats.n += 1;
+
+      render(smoothed);
+
+      const now = performance.now();
+      if (now - lastSampleAt >= SAMPLE_MS) {
+        lastSampleAt = now;
+        samples.push({ t: now, db: smoothed });
+        const cutoff = now - GRAPH_WINDOW_MS;
+        while (samples.length && samples[0].t < cutoff) samples.shift();
+        // Force a render on the sample tick so min/avg/max keep updating
+        // even while the rounded headline reading sits still.
+        render(smoothed, true);
+        drawGraph();
+      }
+    }
+    // --- display mode -------------------------------------------------------
+    const displayModeOn = () => root!.dataset.displayMode === 'on';
+
+    const setDisplayMode = (on: boolean) => {
+      root!.dataset.displayMode = on ? 'on' : 'off';
+      document.documentElement.classList.toggle('display-mode-on', on);
+      document.body.style.overflow = on ? 'hidden' : '';
+      el.display?.setAttribute('aria-pressed', String(on));
+      if (el.displayLabel)
+        el.displayLabel.textContent = on ? 'Exit display mode' : 'Display mode';
+      // requestFullscreen is best-effort: display mode itself is pure CSS.
+      if (on && document.fullscreenEnabled && !document.fullscreenElement) {
+        document.documentElement.requestFullscreen?.().catch(() => {});
+      } else if (!on && document.fullscreenElement) {
+        document.exitFullscreen?.().catch(() => {});
+      }
+      drawGraph();
+    };
+
+    // --- reset --------------------------------------------------------------
+    function resetStats() {
+      stats = { min: Infinity, max: -Infinity, sum: 0, n: 0 };
+      samples = [];
+      smoothed = 0;
+      hasReading = false;
+      lastRendered = -1;
+      if (el.db) el.db.textContent = '—';
+      if (statEls.min) statEls.min.textContent = '—';
+      if (statEls.avg) statEls.avg.textContent = '—';
+      if (statEls.max) statEls.max.textContent = '—';
+      if (el.band) {
+        el.band.textContent = 'idle';
+        el.band.style.color = '';
+        el.band.style.borderColor = '';
+      }
+      if (el.gaugeValue) {
+        el.gaugeValue.setAttribute('stroke-dasharray', '0 1000');
+        el.gaugeValue.setAttribute('stroke', 'var(--color-accent)');
+      }
+      setAlarmState(false);
+      drawGraph();
+      setStatus(running ? 'Measuring' : 'Ready', running ? 'live' : 'idle');
+    }
+
+    const toggleMeter = () => {
+      if (running) void stopMeter();
+      else void startMeter();
+    };
+
+    // --- reference chart highlight -----------------------------------------
+    function highlightReference(db: number) {
+      const rows = $$('[data-ref-row]');
+      let matched = false;
+      for (const row of rows) {
+        const min = Number(row.dataset.min);
+        const max = Number(row.dataset.max);
+        const hit = running && db >= min && db <= max && !matched;
+        if (hit) matched = true;
+        row.classList.toggle('bg-accent/10', hit);
+        const label = row.querySelector<HTMLElement>('[data-ref-label]');
+        if (label) {
+          label.classList.toggle('font-semibold', hit);
+          label.classList.toggle('text-ink', hit);
+          label.classList.toggle('dark:text-dark-ink', hit);
+        }
+      }
+    }
+    // --- wiring -------------------------------------------------------------
+    el.start?.addEventListener('click', toggleMeter);
+    el.errorRetry?.addEventListener('click', () => void startMeter());
+    el.reset?.addEventListener('click', resetStats);
+    el.display?.addEventListener('click', () =>
+      setDisplayMode(!displayModeOn())
+    );
+
+    el.calib?.addEventListener('input', () =>
+      setCalibration(Number(el.calib.value))
+    );
+    el.calibReset?.addEventListener('click', () => setCalibration(0));
+
+    el.threshold?.addEventListener('input', () =>
+      setThreshold(Number(el.threshold.value))
+    );
+    el.alarmToggle?.addEventListener('change', () =>
+      setAlarmEnabled(el.alarmToggle.checked)
+    );
+
+    // restore persisted settings
+    setCalibration(calibration);
+    setThreshold(thresholdDefault);
+    setAlarmEnabled(alarmEnabled);
+
+    // keyboard shortcuts (D is handled in BaseLayout)
+    document.addEventListener('keydown', (event) => {
+      if (event.metaKey || event.ctrlKey || event.altKey) return;
+      const typing = (
+        window as unknown as { __decibelIsTyping?: () => boolean }
+      ).__decibelIsTyping;
+      if (typing?.()) return;
+
+      const active = document.activeElement;
+      const onButton =
+        active instanceof HTMLButtonElement ||
+        active instanceof HTMLAnchorElement;
+
+      switch (event.key) {
+        case ' ':
+        case 'Spacebar':
+          // Let Space activate a focused button natively (no double toggle).
+          if (onButton) return;
+          event.preventDefault();
+          toggleMeter();
+          break;
+        case 'r':
+        case 'R':
+          event.preventDefault();
+          resetStats();
+          break;
+        case 'f':
+        case 'F':
+          event.preventDefault();
+          setDisplayMode(!displayModeOn());
+          break;
+        case 'Escape':
+          if (displayModeOn()) {
+            event.preventDefault();
+            setDisplayMode(false);
+          }
+          break;
+      }
+    });
+
+    // Redraw the graph on resize and when the theme flips.
+    new ResizeObserver(() => drawGraph()).observe(root);
+    new MutationObserver(() => drawGraph()).observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ['class'],
+    });
+
+    // Highlight the matching reference row at ~2 Hz (cheap).
+    setInterval(() => {
+      highlightReference(running && hasReading ? smoothed : -1);
+    }, 500);
+
+    // Release the microphone when the tab is hidden or the page unloads.
+    document.addEventListener('visibilitychange', () => {
+      if (document.hidden && running) void stopMeter();
+    });
+    window.addEventListener('pagehide', () => {
+      if (running) void stopMeter();
+    });
+
+    drawGraph();
+  }
+</script>

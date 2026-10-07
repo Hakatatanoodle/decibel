@@ -1,0 +1,145 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import DecibelMeter from '../components/DecibelMeter.astro';
+import ReferenceChart from '../components/ReferenceChart.astro';
+import FaqAccordion from '../components/FaqAccordion.astro';
+
+const FAQ = [
+  {
+    q: 'What is a sound level meter?',
+    a: 'A sound level meter (SLM) measures the sound pressure level around you and shows it in decibels (dB). Professional Class 1 or Class 2 meters cost hundreds of dollars; this page performs the same core measurement with your device’s microphone, calibrated with the built-in offset slider.',
+  },
+  {
+    q: 'What is the difference between dB, dBFS and dBA?',
+    a: 'dB is the generic decibel unit. dBFS (decibels full scale) describes digital audio levels inside a device, where 0 is the maximum. dBA is A-weighted, a filter that mimics how the human ear responds to different frequencies — the weighting used by occupational noise regulations. This meter maps raw signal strength onto a 0–120 dB scale for a practical, everyday reading.',
+  },
+  {
+    q: 'Is 85 dB dangerous?',
+    a: 'Occupational guidance (NIOSH, OSHA, WHO) treats 85 dB as the level where prolonged exposure begins to risk hearing loss — typically eight hours a day. Every 3 dB above that halves the safe time: about four hours at 88 dB, two hours at 91 dB. Give your ears quiet breaks and use the alarm to stay below your limit.',
+  },
+  {
+    q: 'Why is my reading different from a handheld meter?',
+    a: 'Microphone calibration, device case, and placement all matter. Use the calibration slider to match your meter in the same spot, and keep the device still — hand movement across the microphone creates pressure spikes that read as noise.',
+  },
+  {
+    q: 'Can I measure noise compliance with this tool?',
+    a: 'Use it for screening, logging, and comparison rather than legal or regulatory reporting. For compliance work, use a certified instrument and follow your local standard’s calibration procedure.',
+  },
+];
+
+const faqLd = {
+  '@context': 'https://schema.org',
+  '@type': 'FAQPage',
+  mainEntity: FAQ.map((item) => ({
+    '@type': 'Question',
+    name: item.q,
+    acceptedAnswer: { '@type': 'Answer', text: item.a },
+  })),
+};
+
+const headExtra = `<script type="application/ld+json">${JSON.stringify(faqLd)}</script>`;
+---
+
+<BaseLayout
+  title="Sound Level Meter"
+  description="Browser-based sound level meter: live 0–120 dB readings, 60-second graph, calibration against a reference meter and an 85 dB hearing-safety alarm. Measure noise anywhere — free and private."
+  headExtra={headExtra}
+>
+  <section class="mx-auto w-full max-w-6xl px-4 sm:px-6 pt-10 sm:pt-14 pb-6">
+    <p class="text-xs font-mono uppercase tracking-[0.2em] text-accent">Measure any space</p>
+    <h1
+      class="mt-3 text-3xl sm:text-5xl font-semibold tracking-tight text-ink dark:text-dark-ink text-balance"
+    >
+      Sound Level Meter
+    </h1>
+    <p class="mt-4 max-w-2xl text-base sm:text-lg leading-relaxed text-body dark:text-dark-body">
+      Turn any laptop, tablet, or phone into a handheld sound level meter.
+      Calibrate it against a reference device, set an 85 dB safety alarm, and
+      watch a minute of noise unfold on the graph — entirely on-device.
+    </p>
+  </section>
+
+  <section
+    id="meter"
+    class="mx-auto w-full max-w-6xl px-4 sm:px-6 pb-10 scroll-mt-20"
+    aria-label="Sound level meter tool"
+  >
+    <DecibelMeter defaultThreshold={85} alarmDefault={false} variant="default" />
+  </section>
+
+  <section class="mx-auto w-full max-w-6xl px-4 sm:px-6 pb-12">
+    <div class="grid gap-8 lg:grid-cols-2">
+      <article class="max-w-prose">
+        <h2 class="text-xl sm:text-2xl font-semibold tracking-tight text-ink dark:text-dark-ink">
+          Measuring sound properly
+        </h2>
+        <p class="mt-3 leading-relaxed text-body dark:text-dark-body">
+          A sound level meter answers a simple question — how loud is this,
+          right now — and the answer depends on doing the small things
+          consistently. Place the device on a stable surface at the height of
+          the listener’s ear, at least a metre from walls that might reflect
+          the sound, and keep your hands away from the microphone while a
+          reading settles.
+        </p>
+        <p class="mt-3 leading-relaxed text-body dark:text-dark-body">
+          The meter reports the live level on the gauge, while min, average,
+          and max summarise the whole session. The graph keeps the last 60
+          seconds, which is long enough to see the shape of an event: the hum
+          of a fridge cycling, a drill passing, applause swelling and fading.
+          Reset clears the statistics when you start a new measurement — a
+          fresh session keeps the average honest.
+        </p>
+        <p class="mt-3 leading-relaxed text-body dark:text-dark-body">
+          Calibration is what turns a plausible number into a comparable one.
+          Measure a steady source with both this meter and a reference
+          instrument, then nudge the calibration slider until they agree. The
+          offset lives in your browser storage, so the next measurement on the
+          same device starts where you left off.
+        </p>
+      </article>
+
+      <article class="max-w-prose">
+        <h2 class="text-xl sm:text-2xl font-semibold tracking-tight text-ink dark:text-dark-ink">
+          Understanding the numbers
+        </h2>
+        <p class="mt-3 leading-relaxed text-body dark:text-dark-body">
+          The decibel scale is logarithmic, so the differences are larger than
+          they look. A library at 40 dB is not “a bit quieter” than traffic at
+          70 dB — it sounds several times quieter. Use the reference chart to
+          place your own measurement in context: 30 dB is a whisper, 60 dB a
+          conversation, 85 dB heavy traffic or a lawnmower, and above 100 dB a
+          live concert or a siren at close range.
+        </p>
+        <p class="mt-3 leading-relaxed text-body dark:text-dark-body">
+          For hearing safety, time matters as much as level. NIOSH guidance
+          says sustained exposure at 85 dB is the threshold of concern for a
+          working day; each additional 3 dB cuts the safe duration in half. The
+          built-in alarm is a practical guard rail — set it to 85 dB for
+          hearing protection, to 70 dB for a comfortable room, or any limit
+          that suits your task, and the panel will flash when you cross it.
+        </p>
+        <p class="mt-3 leading-relaxed text-body dark:text-dark-body">
+          Because measurements never leave your browser, this tool is also
+          comfortable in sensitive settings — meeting rooms, clinics,
+          workshops, or classrooms — where recording equipment would be
+          unwelcome. Only the volume is ever computed; the audio itself is
+          discarded sample by sample.
+        </p>
+      </article>
+    </div>
+  </section>
+
+  <section class="mx-auto w-full max-w-6xl px-4 sm:px-6 pb-16">
+    <div class="max-w-3xl">
+      <h2 class="text-xl sm:text-2xl font-semibold tracking-tight text-ink dark:text-dark-ink">
+        Frequently asked questions
+      </h2>
+      <div class="mt-4">
+        <FaqAccordion items={FAQ} headingLevel="h3" />
+      </div>
+      <div class="mt-8">
+        <ReferenceChart />
+      </div>
+    </div>
+  </section>
+</BaseLayout>

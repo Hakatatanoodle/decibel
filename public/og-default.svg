@@ -1,0 +1,41 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630" role="img" aria-label="Decibel — Online Decibel Meter">
+  <title>Decibel — Online Decibel Meter</title>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#fafafa"/>
+      <stop offset="100%" stop-color="#ececec"/>
+    </linearGradient>
+    <linearGradient id="arc" x1="0" y1="1" x2="1" y2="0">
+      <stop offset="0%" stop-color="#17c964"/>
+      <stop offset="55%" stop-color="#0070f3"/>
+      <stop offset="100%" stop-color="#ee0000"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="1200" height="630" fill="url(#bg)"/>
+  <circle cx="1200" cy="0" r="420" fill="#0070f3" opacity="0.06"/>
+  <circle cx="0" cy="630" r="360" fill="#0070f3" opacity="0.05"/>
+
+  <!-- gauge arc -->
+  <g transform="translate(600 300)">
+    <path d="M -169.7 169.7 A 240 240 0 1 1 169.7 169.7" fill="none"
+      stroke="#e2e2e2" stroke-width="34" stroke-linecap="round"
+      transform="rotate(0) scale(1)"/>
+    <path d="M -169.7 169.7 A 240 240 0 1 1 169.7 169.7" fill="none"
+      stroke="url(#arc)" stroke-width="34" stroke-linecap="round"
+      stroke-dasharray="760 1508"/>
+    <text x="0" y="30" text-anchor="middle"
+      font-family="ui-monospace, SFMono-Regular, Menlo, monospace"
+      font-size="110" font-weight="600" fill="#171717">72</text>
+    <text x="0" y="86" text-anchor="middle"
+      font-family="ui-monospace, SFMono-Regular, Menlo, monospace"
+      font-size="30" fill="#8f8f8f">dB · MODERATE</text>
+  </g>
+
+  <text x="600" y="545" text-anchor="middle"
+    font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif"
+    font-size="46" font-weight="600" fill="#171717">Online Decibel Meter</text>
+  <text x="600" y="590" text-anchor="middle"
+    font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif"
+    font-size="26" fill="#8f8f8f">Measure sound level live in your browser — free, no upload</text>
+</svg>
