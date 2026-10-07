@@ -21,7 +21,7 @@ const year = new Date().getFullYear();
       </div>
 
       <nav aria-label="Tools">
-        <p class="text-xs font-mono uppercase tracking-widest text-faint">Tools</p>
+        <p class="text-xs font-mono uppercase tracking-widest text-faint dark:text-dark-mute">Tools</p>
         <ul class="mt-3 space-y-2">
           {
             FOOTER_PRODUCT.map((link) => (
@@ -39,7 +39,7 @@ const year = new Date().getFullYear();
       </nav>
 
       <nav aria-label="Company">
-        <p class="text-xs font-mono uppercase tracking-widest text-faint">Company</p>
+        <p class="text-xs font-mono uppercase tracking-widest text-faint dark:text-dark-mute">Company</p>
         <ul class="mt-3 space-y-2">
           {
             FOOTER_COMPANY.map((link) => (
@@ -57,7 +57,7 @@ const year = new Date().getFullYear();
       </nav>
 
       <nav aria-label="Legal">
-        <p class="text-xs font-mono uppercase tracking-widest text-faint">Legal</p>
+        <p class="text-xs font-mono uppercase tracking-widest text-faint dark:text-dark-mute">Legal</p>
         <ul class="mt-3 space-y-2">
           {
             FOOTER_LEGAL.map((link) => (
@@ -78,11 +78,11 @@ const year = new Date().getFullYear();
     <div
       class="mt-10 pt-6 border-t rule flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3"
     >
-      <p class="text-xs text-faint">
+      <p class="text-xs text-faint dark:text-dark-mute">
         © {year} {SITE_NAME}. For informational use only — not a certified
         sound level meter.
       </p>
-      <p class="text-xs text-faint font-mono">No cookies. No accounts. No tracking.</p>
+      <p class="text-xs text-faint dark:text-dark-mute font-mono">No cookies. No accounts. No tracking.</p>
     </div>
   </div>
 </footer>

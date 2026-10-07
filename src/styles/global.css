@@ -19,19 +19,23 @@
   --font-mono: "Geist Mono", ui-monospace, SFMono-Regular, "SF Mono", Menlo,
     Consolas, "Liberation Mono", monospace;
 
-  /* grayscale ladder */
+  /* grayscale ladder
+     NOTE: mute/faint are floored at WCAG AA (4.5:1) on the light canvas/surface
+     (#fafafa/#ffffff) — do not lighten them without re-checking contrast. */
   --color-canvas: #fafafa;
   --color-surface: #ffffff;
   --color-ink: #171717;
   --color-body: #4d4d4d;
-  --color-mute: #8f8f8f;
-  --color-faint: #a1a1a1;
+  --color-mute: #616161;
+  --color-faint: #6f6f6f;
   --color-hairline: #ebebeb;
   --color-hairline-soft: #f2f2f2;
 
   /* accents (color used only in gradients/illustrations, per DESIGN.md) */
   --color-accent: #0070f3;
   --color-accent-hover: #0059c1;
+  --color-accent-strong: #004494;
+  --color-accent-light: #7aa9ff;
   --color-on-accent: #ffffff;
   --color-danger: #ee0000;
   --color-warning: #f5a623;
@@ -166,13 +170,24 @@
   }
 
   .prose-page a {
-    color: var(--color-accent);
+    /* accent-hover (#0059c1) is the darkest blue that stays on-brand while
+       clearing WCAG AA (6.3:1) on the light canvas — plain accent does not. */
+    color: var(--color-accent-hover);
     text-decoration: underline;
     text-underline-offset: 2px;
   }
 
   .prose-page a:hover {
-    color: var(--color-accent-hover);
+    color: var(--color-accent-strong);
+  }
+
+  /* Links stay AA-readable on the near-black dark canvas. */
+  html.dark .prose-page a {
+    color: var(--color-accent-light);
+  }
+
+  html.dark .prose-page a:hover {
+    color: #9abdff;
   }
 
   .prose-page strong {

@@ -11,7 +11,7 @@ export const SITE_URL = 'https://example.com';
 
 export const SITE_NAME = 'Decibel';
 export const SITE_TAGLINE = 'Online Decibel Meter';
-export const CONTACT_EMAIL = 'hello@example.com'; // TODO: real contact address
+export const CONTACT_EMAIL = 'yochankulung321@gmail.com';
 
 export const NAV_LINKS = [
   { href: '/', label: 'Home' },

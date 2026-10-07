@@ -46,7 +46,7 @@ const headExtra = `<script type="application/ld+json">${JSON.stringify(faqLd)}</
   headExtra={headExtra}
 >
   <section class="mx-auto w-full max-w-6xl px-4 sm:px-6 pt-10 sm:pt-14 pb-6">
-    <p class="text-xs font-mono uppercase tracking-[0.2em] text-accent">Measure any space</p>
+    <p class="text-xs font-mono uppercase tracking-[0.2em] text-accent-hover dark:text-accent-light">Measure any space</p>
     <h1
       class="mt-3 text-3xl sm:text-5xl font-semibold tracking-tight text-ink dark:text-dark-ink text-balance"
     >
@@ -64,7 +64,7 @@ const headExtra = `<script type="application/ld+json">${JSON.stringify(faqLd)}</
     class="mx-auto w-full max-w-6xl px-4 sm:px-6 pb-10 scroll-mt-20"
     aria-label="Sound level meter tool"
   >
-    <DecibelMeter defaultThreshold={85} alarmDefault={false} variant="default" />
+    <DecibelMeter defaultThreshold={85} alarmDefault={false} variant="sound" />
   </section>
 
   <section class="mx-auto w-full max-w-6xl px-4 sm:px-6 pb-12">

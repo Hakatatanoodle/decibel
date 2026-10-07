@@ -2,20 +2,30 @@
 import ReferenceChart from './ReferenceChart.astro';
 
 /**
- * Live decibel meter: getUserMedia -> AnalyserNode -> RMS -> dB.
- * Everything runs locally in the browser; no audio ever leaves the device.
+ * Live decibel meter: getUserMedia -> [A-weighting BiquadFilter chain] ->
+ * AnalyserNode -> RMS -> dB. Everything runs locally; audio never leaves
+ * the device.
+ *
+ * Shared audio engine, varied UI per page (`variant`):
+ * - "standard"  (homepage): gauge + graph + min/avg/max, default 85 dB.
+ * - "classroom": traffic-light display, 40/60/70 presets, over-limit
+ *   counter, no graph.
+ * - "sound": A-weighting toggle, Fast/Slow response, Leq average,
+ *   peak hold, CSV export, graph + threshold line.
  */
 interface Props {
-  /** Starting alarm threshold in dB (85 default, 70 classroom). */
+  /** Starting alarm threshold in dB (85 standard/sound, 70 classroom). */
   defaultThreshold?: number;
   /** Whether the visual alarm starts enabled. */
   alarmDefault?: boolean;
   /** Namespaces threshold/alarm storage so pages keep their own defaults. */
-  variant?: string;
+  variant?: 'standard' | 'classroom' | 'sound' | string;
 }
 
-const { defaultThreshold = 85, alarmDefault = false, variant = 'default' } =
+const { defaultThreshold = 85, alarmDefault = false, variant = 'standard' } =
   Astro.props;
+const isClassroom = variant === 'classroom';
+const isSound = variant === 'sound';
 ---
 
 <section class="not-prose" data-meter data-variant={variant} data-display-mode="off">
@@ -37,7 +47,7 @@ const { defaultThreshold = 85, alarmDefault = false, variant = 'default' } =
             role="status">Ready</span
           >
         </div>
-        <span class="text-[11px] font-mono text-faint shrink-0">on-device</span>
+        <span class="text-[11px] font-mono text-faint dark:text-dark-mute shrink-0">on-device</span>
       </div>
 
       <!-- Gauge + reading -->
@@ -92,16 +102,69 @@ const { defaultThreshold = 85, alarmDefault = false, variant = 'default' } =
               class="mt-2 text-xs font-mono uppercase tracking-widest px-2 py-0.5 rounded-full border rule text-mute dark:text-dark-mute"
               data-band>idle</span
             >
+            {/* Traffic-light state dot: classroom variant only */}
+            {isClassroom && (
+              <span class="mt-2 inline-flex items-center gap-1.5 text-xs font-mono" data-traffic aria-live="polite">
+                <span class="inline-flex h-3 w-3 rounded-full bg-faint" data-traffic-dot aria-hidden="true"></span>
+                <span class="text-mute dark:text-dark-mute" data-traffic-label>waiting</span>
+              </span>
+            )}
+            {/* Peak-hold readout: sound variant only */}
+            {isSound && (
+              <span class="mt-2 text-xs font-mono tabular-nums text-mute dark:text-dark-mute">
+                peak hold <span class="font-semibold text-ink dark:text-dark-ink" data-peak-hold>—</span>
+              </span>
+            )}
           </div>
         </div>
       </div>
-      <!-- Min / Avg / Max -->
-      <div class="px-4 sm:px-6">
-        <div class="grid grid-cols-3 gap-2 text-center">
-          {
-            ['min', 'avg', 'max'].map((k) => (
+      {isClassroom ? (
+        <div class="px-4 sm:px-6">
+          <div class="grid grid-cols-3 gap-2 text-center">
+            <div class="rounded-xl border rule bg-canvas dark:bg-dark-canvas py-2.5">
+              <div class="text-[10px] font-mono uppercase tracking-widest text-faint dark:text-dark-mute">avg (Leq)</div>
+              <div
+                class="mt-0.5 text-lg font-semibold tabular-nums text-ink dark:text-dark-ink"
+                data-stat="avg"
+              >
+                —
+              </div>
+            </div>
+            <div class="rounded-xl border rule bg-canvas dark:bg-dark-canvas py-2.5">
+              <div class="text-[10px] font-mono uppercase tracking-widest text-faint dark:text-dark-mute">max</div>
+              <div
+                class="mt-0.5 text-lg font-semibold tabular-nums text-ink dark:text-dark-ink"
+                data-stat="max"
+              >
+                —
+              </div>
+            </div>
+            <div class="rounded-xl border border-danger/40 bg-danger/5 dark:bg-danger/10 py-2.5">
+              <div class="text-[10px] font-mono uppercase tracking-widest text-danger dark:text-red-400">over limit</div>
+              <div
+                class="mt-0.5 text-lg font-semibold tabular-nums text-danger dark:text-red-400"
+                data-over-count
+              >
+                0
+              </div>
+            </div>
+          </div>
+          <button
+            type="button"
+            data-over-reset
+            class="mt-2 text-xs font-medium text-accent-hover hover:text-accent-strong dark:text-accent-light underline underline-offset-2"
+          >
+            Reset over-limit counter
+          </button>
+        </div>
+      ) : (
+        <div class="px-4 sm:px-6">
+          <div class="grid grid-cols-3 gap-2 text-center">
+            {['min', 'avg', 'max'].map((k) => (
               <div class="rounded-xl border rule bg-canvas dark:bg-dark-canvas py-2.5">
-                <div class="text-[10px] font-mono uppercase tracking-widest text-faint">{k}</div>
+                <div class="text-[10px] font-mono uppercase tracking-widest text-faint dark:text-dark-mute">
+                  {k === 'avg' && isSound ? 'avg (Leq)' : k}
+                </div>
                 <div
                   class="mt-0.5 text-lg font-semibold tabular-nums text-ink dark:text-dark-ink"
                   data-stat={k}
@@ -109,23 +172,28 @@ const { defaultThreshold = 85, alarmDefault = false, variant = 'default' } =
                   —
                 </div>
               </div>
-            ))
-          }
+            ))}
+          </div>
         </div>
-      </div>
+      )}
 
-      <!-- 60s graph (fixed height = no layout shift) -->
+      {!isClassroom && (
       <div class="px-4 sm:px-6 pt-4">
         <div
           class="relative h-40 rounded-xl border rule bg-canvas dark:bg-dark-canvas overflow-hidden"
           data-graph-wrap
         >
           <canvas data-graph class="block w-full h-full" aria-hidden="true"></canvas>
-          <span class="absolute top-1.5 left-2 text-[10px] font-mono text-faint select-none"
+          <span class="absolute top-1.5 left-2 text-[10px] font-mono text-faint dark:text-dark-mute select-none"
             >last 60 s</span
+          >
+          <span class="absolute top-1.5 right-2 text-[10px] font-mono text-danger dark:text-red-400 select-none tabular-nums"
+            data-graph-threshold
+            >limit {defaultThreshold} dB</span
           >
         </div>
       </div>
+      )}
 
       <!-- Controls + error slot -->
       <div class="px-4 sm:px-6 pt-4 pb-5 mt-auto">
@@ -183,8 +251,18 @@ const { defaultThreshold = 85, alarmDefault = false, variant = 'default' } =
                 d="M4 9V5a1 1 0 0 1 1-1h4M20 9V5a1 1 0 0 0-1-1h-4M4 15v4a1 1 0 0 0 1 1h4M20 15v4a1 1 0 0 1-1 1h-4"
               ></path>
             </svg>
-            <span data-display-label>Display mode</span>
+            <span data-display-label>{isClassroom ? 'Traffic-light display' : 'Display mode'}</span>
           </button>
+
+          {isSound && (
+            <button
+              type="button"
+              data-export
+              class="inline-flex items-center justify-center h-10 px-4 rounded-full border rule text-sm font-medium text-ink dark:text-dark-ink hover:bg-hairline-soft dark:hover:bg-dark-canvas transition-colors"
+            >
+              Export CSV
+            </button>
+          )}
         </div>
 
         <!-- Error card (shown on permission/hardware failure) -->
@@ -198,7 +276,7 @@ const { defaultThreshold = 85, alarmDefault = false, variant = 'default' } =
           <button
             type="button"
             data-error-retry
-            class="mt-2 text-sm font-medium text-accent hover:text-accent-hover underline underline-offset-2"
+            class="mt-2 text-sm font-medium text-accent-hover hover:text-accent-strong dark:text-accent-light underline underline-offset-2"
           >
             Try again
           </button>
@@ -213,7 +291,7 @@ const { defaultThreshold = 85, alarmDefault = false, variant = 'default' } =
               ['D', 'theme'],
               ['Esc', 'exit'],
             ].map(([key, desc]) => (
-              <span class="inline-flex items-center gap-1.5 text-[11px] text-faint">
+              <span class="inline-flex items-center gap-1.5 text-[11px] text-mute dark:text-dark-mute">
                 <kbd class="font-mono px-1.5 py-0.5 rounded border rule bg-canvas dark:bg-dark-canvas text-mute dark:text-dark-mute">
                   {key}
                 </kbd>
@@ -240,11 +318,13 @@ const { defaultThreshold = 85, alarmDefault = false, variant = 'default' } =
           <h3 class="text-sm font-semibold text-ink dark:text-dark-ink">Calibration</h3>
           <span
             class="text-xs font-mono tabular-nums text-mute dark:text-dark-mute"
-            data-calib-value>+0 dB</span
+            data-calib-value
+            aria-live="polite">+0 dB</span
           >
         </div>
         <p class="mt-1 text-xs leading-relaxed text-mute dark:text-dark-mute">
           Offset the reading to match a trusted SPL meter held next to this device.
+          <span class="font-semibold text-body dark:text-dark-body" data-calib-live>Live: — dB</span>
         </p>
         <input
           type="range"
@@ -254,15 +334,15 @@ const { defaultThreshold = 85, alarmDefault = false, variant = 'default' } =
           value="0"
           data-calib
           aria-label="Calibration offset in decibels"
-          class="mt-3 w-full accent-accent"
+          class="meter-range mt-3 w-full"
         />
-        <div class="mt-1 flex justify-between text-[10px] font-mono text-faint">
+        <div class="mt-1 flex justify-between text-[10px] font-mono text-mute dark:text-dark-mute">
           <span>−30</span><span>0</span><span>+30</span>
         </div>
         <button
           type="button"
           data-calib-reset
-          class="mt-2 text-xs font-medium text-accent hover:text-accent-hover underline underline-offset-2"
+          class="mt-2 text-xs font-medium text-accent-hover hover:text-accent-strong dark:text-accent-light underline underline-offset-2"
         >
           Reset calibration
         </button>
@@ -282,6 +362,19 @@ const { defaultThreshold = 85, alarmDefault = false, variant = 'default' } =
             <span class="text-xs text-mute dark:text-dark-mute">enabled</span>
           </label>
         </div>
+        {isClassroom && (
+          <div class="mt-3 flex flex-wrap gap-1.5" role="group" aria-label="Classroom presets">
+            {[40, 60, 70].map((p) => (
+              <button
+                type="button"
+                data-preset={p}
+                class="h-8 px-3 rounded-full border rule text-xs font-mono font-medium tabular-nums text-body dark:text-dark-body hover:text-ink dark:hover:text-dark-ink hover:bg-hairline-soft dark:hover:bg-dark-canvas transition-colors"
+              >
+                {p} dB
+              </button>
+            ))}
+          </div>
+        )}
         <div class="mt-3 flex items-center gap-3">
           <input
             type="range"
@@ -291,24 +384,69 @@ const { defaultThreshold = 85, alarmDefault = false, variant = 'default' } =
             value={defaultThreshold}
             data-threshold
             aria-label="Alarm threshold in decibels"
-            class="w-full accent-accent"
+            class="meter-range w-full"
           />
           <span
             class="w-16 shrink-0 text-right text-sm font-mono font-semibold tabular-nums text-ink dark:text-dark-ink"
-            data-threshold-value>{defaultThreshold} dB</span
+            data-threshold-value
+            aria-live="polite">{defaultThreshold} dB</span
           >
         </div>
         <p class="mt-2 text-xs leading-relaxed text-mute dark:text-dark-mute">
           When the level stays above the limit, the panel flashes red.
         </p>
+        <div class="mt-2 flex items-center gap-2">
+          <button
+            type="button"
+            data-alarm-test
+            class="inline-flex items-center justify-center h-8 px-3 rounded-full border rule text-xs font-medium text-body dark:text-dark-body hover:text-ink dark:hover:text-dark-ink hover:bg-hairline-soft dark:hover:bg-dark-canvas transition-colors"
+          >
+            Test alarm
+          </button>
+          <span class="text-[11px] text-faint dark:text-dark-mute">flashes the panel for 2 s</span>
+        </div>
         <p
-          class="mt-2 hidden text-xs font-semibold text-danger"
+          class="mt-2 hidden text-xs font-semibold text-danger dark:text-red-400"
           data-alarm-msg
           aria-live="polite"
         >
           Over the limit
         </p>
       </div>
+
+      {isSound && (
+      <div class="rounded-2xl border rule bg-surface dark:bg-dark-surface p-4 sm:p-5">
+        <h3 class="text-sm font-semibold text-ink dark:text-dark-ink">Metering</h3>
+        <label class="mt-3 flex items-center justify-between gap-3 cursor-pointer">
+          <span class="text-xs text-body dark:text-dark-body">A-weighting <span class="text-faint dark:text-dark-mute">(dBA, BiquadFilter chain)</span></span>
+          <input type="checkbox" data-aweight checked class="h-4 w-4 accent-accent" />
+        </label>
+        <fieldset class="mt-3">
+          <legend class="text-xs text-body dark:text-dark-body">Response</legend>
+          <div class="mt-1.5 flex gap-1.5" role="radiogroup" aria-label="Response speed">
+            <button
+              type="button"
+              data-response="fast"
+              aria-pressed="true"
+              class="h-8 px-3 rounded-full border rule text-xs font-medium transition-colors"
+            >
+              Fast (125 ms)
+            </button>
+            <button
+              type="button"
+              data-response="slow"
+              aria-pressed="false"
+              class="h-8 px-3 rounded-full border rule text-xs font-medium transition-colors"
+            >
+              Slow (1 s)
+            </button>
+          </div>
+        </fieldset>
+        <p class="mt-3 text-[11px] leading-relaxed text-faint dark:text-dark-mute">
+          Average is energy-based Leq (10·log₁₀ of mean 10<sup>dB/10</sup>).
+        </p>
+      </div>
+      )}
 
       <ReferenceChart />
     </div>
@@ -318,6 +456,51 @@ const { defaultThreshold = 85, alarmDefault = false, variant = 'default' } =
 <style>
   [data-meter] {
     position: relative;
+  }
+
+  /* Cross-browser range styling. WebKit needs an explicit negative margin
+     to centre the thumb on the track; Firefox centres ::-moz-range-thumb
+     automatically, so no margin there. Both thumbs are 16px so the value 0
+     (midpoint of -30..+30) renders at the visual centre in Chrome & Firefox. */
+  .meter-range {
+    -webkit-appearance: none;
+    appearance: none;
+    height: 24px;
+    background: transparent;
+    cursor: pointer;
+  }
+  .meter-range::-webkit-slider-runnable-track {
+    height: 6px;
+    border-radius: 9999px;
+    background: var(--color-hairline);
+  }
+  html.dark .meter-range::-webkit-slider-runnable-track {
+    background: var(--color-dark-hairline);
+  }
+  .meter-range::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    margin-top: -5px; /* (track 6px - thumb 16px) / 2 → centred */
+    width: 16px;
+    height: 16px;
+    border-radius: 9999px;
+    background: var(--color-surface);
+    border: 2px solid var(--color-accent);
+  }
+  .meter-range::-moz-range-track {
+    height: 6px;
+    border-radius: 9999px;
+    background: var(--color-hairline);
+  }
+  html.dark .meter-range::-moz-range-track {
+    background: var(--color-dark-hairline);
+  }
+  .meter-range::-moz-range-thumb {
+    width: 12px; /* +2px border each side = 16px outer, matches WebKit */
+    height: 12px;
+    border-radius: 9999px;
+    background: var(--color-surface);
+    border: 2px solid var(--color-accent);
   }
 
   /* Alarm flash: visible in both themes, honours reduced motion. */
@@ -415,6 +598,23 @@ const { defaultThreshold = 85, alarmDefault = false, variant = 'default' } =
   const GRAPH_WINDOW_MS = 60_000;
   const SAMPLE_MS = 250;
   const GAUGE_SWEEP = 750; // pathLength units covering the 270° arc
+  /** Peak-hold needle decay (dB per second) on the sound page. */
+  const PEAK_DECAY_DB_S = 6;
+
+  /* A-weighting curve (IEC 61672) approximated as a BiquadFilter cascade.
+     Three shelving/peaking stages follow the A curve within ~±1.5 dB from
+     40 Hz–16 kHz at 48 kHz sample rate; a 4th normalising gain trims 1 kHz
+     to 0 dB. Good enough for a browser estimate, not certification. */
+  const A_WEIGHT_STAGES: Array<{
+    type: BiquadFilterType;
+    frequency: number;
+    Q?: number;
+    gain?: number;
+  }> = [
+    { type: 'highpass', frequency: 280 },
+    { type: 'lowshelf', frequency: 900, gain: -6.2 },
+    { type: 'highshelf', frequency: 6300, gain: 4.4 },
+  ];
 
   const root = document.querySelector<HTMLElement>('[data-meter]');
   if (root) {
@@ -480,9 +680,22 @@ const { defaultThreshold = 85, alarmDefault = false, variant = 'default' } =
       statMin: $('[data-stat="min"]'),
       statAvg: $('[data-stat="avg"]'),
       statMax: $('[data-stat="max"]'),
+      graphThreshold: $('[data-graph-threshold]'),
+      calibLive: $('[data-calib-live]'),
+      alarmTest: $('[data-alarm-test]'),
+      trafficDot: $('[data-traffic-dot]'),
+      trafficLabel: $('[data-traffic-label]'),
+      peakHold: $('[data-peak-hold]'),
+      overCount: $('[data-over-count]'),
+      overReset: $('[data-over-reset]'),
+      exportBtn: $('[data-export]'),
+      aWeight: $<HTMLInputElement>('[data-aweight]')[0],
+      responseFast: $('[data-response="fast"]'),
+      responseSlow: $('[data-response="slow"]'),
     } as const;
 
-    const statEls = { min: el.statMin, avg: el.statAvg, max: el.statMax };
+    const isClassroom = variant === 'classroom';
+    const isSound = variant === 'sound';
 
     // --- persisted settings -------------------------------------------------
     let calibration = Number(readLs(LS.calib) ?? 0);
@@ -496,17 +709,36 @@ const { defaultThreshold = 85, alarmDefault = false, variant = 'default' } =
     // --- runtime state ------------------------------------------------------
     let stream: MediaStream | null = null;
     let ctx: AudioContext | null = null;
+    let sourceNode: MediaStreamAudioSourceNode | null = null;
     let analyser: AnalyserNode | null = null;
+    // A-weighting filter chain (sound page): source -> filters -> analyser.
+    let aFilters: BiquadFilterNode[] = [];
     let buf: Float32Array | null = null;
     let rafId = 0;
     let running = false;
+    let wakeLock: { release: () => Promise<void> } | null = null;
     let smoothed = 0;
     let hasReading = false;
-    let stats = { min: Infinity, max: -Infinity, sum: 0, n: 0 };
+    let lastFrameAt = 0;
+    // Energy-based average (Leq): mean of 10^(dB/10), converted back on read.
+    let stats = { min: Infinity, max: -Infinity, energySum: 0, n: 0 };
     let samples: { t: number; db: number }[] = [];
     let lastSampleAt = 0;
     let alarmOn = false;
+    let alarmTestUntil = 0;
     let lastRendered = -1;
+    // Peak hold: raw peak, decays toward the live level (sound page).
+    let peakHold = -Infinity;
+    let peakHoldAt = 0;
+    // Response time constant (sound page): Fast 125 ms, Slow 1 s.
+    let responseTauMs = 125;
+    let aWeightEnabled = true;
+    // Over-limit counter (classroom): increments on rising edge only.
+    let overCount = 0;
+    let wasOver = false;
+    // CSV log (sound page): timestamped dB samples.
+    let csvRows: { t: string; db: number }[] = [];
+    let sessionStart = 0;
 
     const currentThreshold = () =>
       clamp(Number(el.threshold?.value ?? 85), 40, 110);
@@ -551,6 +783,9 @@ const { defaultThreshold = 85, alarmDefault = false, variant = 'default' } =
         const deg = 225 + (v / MAX_DB) * 270;
         el.thresholdTick.setAttribute('transform', `rotate(${deg} 100 100)`);
       }
+      if (el.graphThreshold) {
+        el.graphThreshold.textContent = `limit ${v} dB`;
+      }
       writeLs(LS.threshold, String(v));
       drawGraph();
     };
@@ -574,6 +809,10 @@ const { defaultThreshold = 85, alarmDefault = false, variant = 'default' } =
       if (hasReading) render(smoothed, true);
     };
     // --- rendering ----------------------------------------------------------
+    // Leq helper: session energy mean -> dB.
+    const leqOf = (energySum: number, n: number) =>
+      n > 0 ? 10 * Math.log10(Math.max(energySum / n, 1e-12)) : NaN;
+
     function render(db: number, force = false) {
       hasReading = true;
       const rounded = Math.round(db);
@@ -600,17 +839,60 @@ const { defaultThreshold = 85, alarmDefault = false, variant = 'default' } =
       if (el.dot && running) {
         el.dot.style.backgroundColor = BAND_COLORS[band.key];
       }
+      if (el.calibLive) {
+        el.calibLive.textContent = `Live: ${rounded} dB (incl. ${calibration >= 0 ? '+' : ''}${calibration} dB cal)`;
+      }
 
       const s = stats;
       if (s.n > 0) {
-        if (statEls.min) statEls.min.textContent = String(Math.round(s.min));
-        if (statEls.avg) statEls.avg.textContent = (s.sum / s.n).toFixed(1);
-        if (statEls.max) statEls.max.textContent = String(Math.round(s.max));
+        if (el.statMin) el.statMin.textContent = String(Math.round(s.min));
+        // avg is energy-based Leq, NOT an arithmetic mean of dB.
+        if (el.statAvg) {
+          const leq = leqOf(s.energySum, s.n);
+          el.statAvg.textContent = Number.isFinite(leq) ? leq.toFixed(1) : '—';
+        }
+        // max tracks the raw (unsmoothed) peak.
+        if (el.statMax) el.statMax.textContent = String(Math.round(s.max));
+      }
+      if (el.peakHold) {
+        el.peakHold.textContent = Number.isFinite(peakHold)
+          ? `${Math.round(peakHold)} dB`
+          : '—';
       }
 
-      if (alarmEnabled && running && db >= currentThreshold())
+      const testFlash = performance.now() < alarmTestUntil;
+      if (testFlash) setAlarmState(true);
+      else if (alarmEnabled && running && db >= currentThreshold())
         setAlarmState(true);
       else if (alarmOn) setAlarmState(false);
+
+      // Classroom traffic light: green < -10 dB under, amber within 10 dB,
+      // red at/over the limit. Over-limit counter ticks on rising edge.
+      const over = alarmEnabled && running && db >= currentThreshold();
+      if (isClassroom) {
+        const near = alarmEnabled && running && db >= currentThreshold() - 10 && !over;
+        if (el.trafficDot) {
+          el.trafficDot.className = `inline-flex h-3 w-3 rounded-full ${
+            over ? 'bg-danger' : near ? 'bg-warning' : running ? 'bg-ok' : 'bg-faint'
+          }`;
+        }
+        if (el.trafficLabel) {
+          el.trafficLabel.textContent = !running
+            ? 'waiting'
+            : over
+              ? 'too loud'
+              : near
+                ? 'getting loud'
+                : 'good level';
+        }
+        if (over && !wasOver) {
+          overCount += 1;
+          if (el.overCount) el.overCount.textContent = String(overCount);
+        }
+        wasOver = over;
+      } else {
+        wasOver = over;
+      }
     }
 
     // --- 60s graph ----------------------------------------------------------
@@ -716,9 +998,52 @@ const { defaultThreshold = 85, alarmDefault = false, variant = 'default' } =
     }
 
     // --- audio lifecycle ----------------------------------------------------
+    // Wake Lock keeps the screen on while measuring (mobile display use).
+    async function requestWakeLock() {
+      try {
+        const nav = navigator as Navigator & {
+          wakeLock?: { request: (t: string) => Promise<{ release: () => Promise<void> }> };
+        };
+        if (nav.wakeLock?.request) {
+          if (wakeLock) {
+            try {
+              await wakeLock.release();
+            } catch {
+              /* ignore */
+            }
+          }
+          wakeLock = await nav.wakeLock.request('screen');
+        }
+      } catch {
+        wakeLock = null; // unsupported or denied — measuring still works
+      }
+    }
+    async function releaseWakeLock() {
+      if (!wakeLock) return;
+      try {
+        await wakeLock.release();
+      } catch {
+        /* ignore */
+      }
+      wakeLock = null;
+    }
+
+    /** Build the A-weighting BiquadFilter chain on the sound page. */
+    function buildAWeighting(context: AudioContext): BiquadFilterNode[] {
+      return A_WEIGHT_STAGES.map((stage) => {
+        const f = context.createBiquadFilter();
+        f.type = stage.type;
+        f.frequency.value = stage.frequency;
+        if (stage.Q !== undefined) f.Q.value = stage.Q;
+        if (stage.gain !== undefined) f.gain.value = stage.gain;
+        return f;
+      });
+    }
+
     async function stopMeter() {
       running = false;
       cancelAnimationFrame(rafId);
+      await releaseWakeLock();
       if (stream) {
         stream.getTracks().forEach((t) => t.stop());
         stream = null;
@@ -731,12 +1056,15 @@ const { defaultThreshold = 85, alarmDefault = false, variant = 'default' } =
         }
       }
       ctx = null;
+      sourceNode = null;
       analyser = null;
+      aFilters = [];
       buf = null;
       el.iconPlay?.classList.remove('hidden');
       el.iconPause?.classList.add('hidden');
       if (el.startLabel) el.startLabel.textContent = 'Start measuring';
       setAlarmState(false);
+      alarmTestUntil = 0;
       if (el.dot) el.dot.style.backgroundColor = '';
       setStatus('Paused', 'idle');
     }
@@ -802,9 +1130,21 @@ const { defaultThreshold = 85, alarmDefault = false, variant = 'default' } =
         ctx = new AC();
         if (ctx.state === 'suspended') await ctx.resume();
         const source = ctx.createMediaStreamSource(stream);
+        sourceNode = source;
         analyser = ctx.createAnalyser();
         analyser.fftSize = 2048;
-        source.connect(analyser);
+        if (isSound && aWeightEnabled) {
+          // Sound page: mic -> A-weighting BiquadFilter chain -> analyser.
+          aFilters = buildAWeighting(ctx);
+          let head: AudioNode = source;
+          for (const f of aFilters) {
+            head.connect(f);
+            head = f;
+          }
+          head.connect(analyser);
+        } else {
+          source.connect(analyser);
+        }
         buf = new Float32Array(analyser.fftSize);
       } catch {
         await stopMeter();
@@ -816,6 +1156,9 @@ const { defaultThreshold = 85, alarmDefault = false, variant = 'default' } =
       }
 
       running = true;
+      sessionStart = Date.now();
+      lastFrameAt = performance.now();
+      void requestWakeLock();
       hideError();
       el.iconPlay?.classList.add('hidden');
       el.iconPause?.classList.remove('hidden');
@@ -828,6 +1171,10 @@ const { defaultThreshold = 85, alarmDefault = false, variant = 'default' } =
       if (!running || !analyser || !buf) return;
       rafId = requestAnimationFrame(loop);
 
+      const now = performance.now();
+      const dtMs = lastFrameAt > 0 ? Math.min(now - lastFrameAt, 250) : 16.7;
+      lastFrameAt = now;
+
       analyser.getFloatTimeDomainData(buf as Float32Array<ArrayBuffer>);
       let sum = 0;
       for (let i = 0; i < buf.length; i++) sum += buf[i] * buf[i];
@@ -835,20 +1182,38 @@ const { defaultThreshold = 85, alarmDefault = false, variant = 'default' } =
       const dbfs = 20 * Math.log10(Math.max(rms, 1e-7));
       const level = clamp(dbfs + BASE_OFFSET + calibration, 0, MAX_DB);
 
-      // exponential smoothing: steady needle, spikes still visible
-      smoothed = hasReading ? smoothed + (level - smoothed) * 0.25 : level;
+      // Time-based exponential smoothing: alpha = 1 - exp(-dt/tau).
+      // Sound page honours Fast (125 ms) / Slow (1 s); other pages use Fast.
+      const tau = isSound ? responseTauMs : 125;
+      const alpha = 1 - Math.exp(-dtMs / tau);
+      smoothed = hasReading ? smoothed + (level - smoothed) * alpha : level;
 
+      // Peak hold tracks the raw peak, then decays toward the live level.
+      if (level >= peakHold) {
+        peakHold = level;
+        peakHoldAt = now;
+      } else {
+        const decayed = peakHold - (PEAK_DECAY_DB_S * dtMs) / 1000;
+        peakHold = Math.max(level, decayed);
+        peakHoldAt = now;
+      }
+
+      // Leq: accumulate linear energy of the RAW level (10^(dB/10)).
       stats.min = Math.min(stats.min, smoothed);
-      stats.max = Math.max(stats.max, smoothed);
-      stats.sum += smoothed;
+      stats.max = Math.max(stats.max, level);
+      stats.energySum += Math.pow(10, level / 10);
       stats.n += 1;
 
       render(smoothed);
 
-      const now = performance.now();
       if (now - lastSampleAt >= SAMPLE_MS) {
         lastSampleAt = now;
         samples.push({ t: now, db: smoothed });
+        if (isSound && running) {
+          const elapsed = ((Date.now() - sessionStart) / 1000).toFixed(1);
+          csvRows.push({ t: elapsed, db: Math.round(smoothed * 10) / 10 });
+          if (csvRows.length > 1440) csvRows.shift(); // cap ~6 min at 4 Hz
+        }
         const cutoff = now - GRAPH_WINDOW_MS;
         while (samples.length && samples[0].t < cutoff) samples.shift();
         // Force a render on the sample tick so min/avg/max keep updating
@@ -878,15 +1243,21 @@ const { defaultThreshold = 85, alarmDefault = false, variant = 'default' } =
 
     // --- reset --------------------------------------------------------------
     function resetStats() {
-      stats = { min: Infinity, max: -Infinity, sum: 0, n: 0 };
+      stats = { min: Infinity, max: -Infinity, energySum: 0, n: 0 };
       samples = [];
+      csvRows = [];
       smoothed = 0;
       hasReading = false;
       lastRendered = -1;
+      peakHold = -Infinity;
+      overCount = 0;
+      wasOver = false;
       if (el.db) el.db.textContent = '—';
-      if (statEls.min) statEls.min.textContent = '—';
-      if (statEls.avg) statEls.avg.textContent = '—';
-      if (statEls.max) statEls.max.textContent = '—';
+      if (el.statMin) el.statMin.textContent = '—';
+      if (el.statAvg) el.statAvg.textContent = '—';
+      if (el.statMax) el.statMax.textContent = '—';
+      if (el.peakHold) el.peakHold.textContent = '—';
+      if (el.overCount) el.overCount.textContent = '0';
       if (el.band) {
         el.band.textContent = 'idle';
         el.band.style.color = '';
@@ -925,6 +1296,42 @@ const { defaultThreshold = 85, alarmDefault = false, variant = 'default' } =
       }
     }
     // --- wiring -------------------------------------------------------------
+    const paintResponses = () => {
+      for (const [btn, active] of [
+        [el.responseFast, responseTauMs === 125],
+        [el.responseSlow, responseTauMs === 1000],
+      ] as const) {
+        if (!btn) continue;
+        btn.setAttribute('aria-pressed', String(active));
+        btn.classList.toggle('bg-accent', active);
+        btn.classList.toggle('text-on-accent', active);
+        btn.classList.toggle('border-transparent', active);
+        btn.classList.toggle('text-body', !active);
+        btn.classList.toggle('dark:text-dark-body', !active);
+      }
+    };
+
+    const setResponse = (tauMs: 125 | 1000) => {
+      responseTauMs = tauMs;
+      paintResponses();
+    };
+
+    const exportCsv = () => {
+      const header = 'elapsed_s,db';
+      const lines = csvRows.map((r) => `${r.t},${r.db}`);
+      const csv = [header, ...lines].join('\n') + '\n';
+      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      const stamp = new Date().toISOString().replace(/[:.]/g, '-');
+      a.href = url;
+      a.download = `decibel-log-${stamp}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+    };
+
     el.start?.addEventListener('click', toggleMeter);
     el.errorRetry?.addEventListener('click', () => void startMeter());
     el.reset?.addEventListener('click', resetStats);
@@ -933,16 +1340,66 @@ const { defaultThreshold = 85, alarmDefault = false, variant = 'default' } =
     );
 
     el.calib?.addEventListener('input', () =>
-      setCalibration(Number(el.calib.value))
+      setCalibration(Number(el.calib!.value))
     );
     el.calibReset?.addEventListener('click', () => setCalibration(0));
 
     el.threshold?.addEventListener('input', () =>
-      setThreshold(Number(el.threshold.value))
+      setThreshold(Number(el.threshold!.value))
     );
     el.alarmToggle?.addEventListener('change', () =>
-      setAlarmEnabled(el.alarmToggle.checked)
+      setAlarmEnabled(!!el.alarmToggle!.checked)
     );
+    el.alarmTest?.addEventListener('click', () => {
+      // Flash the panel for 2 s even without the mic running.
+      alarmTestUntil = performance.now() + 2000;
+      setAlarmState(true);
+      render(smoothed, true);
+      setTimeout(() => {
+        if (performance.now() >= alarmTestUntil && !alarmOn) return;
+        if (performance.now() >= alarmTestUntil) render(smoothed, true);
+      }, 2100);
+    });
+
+    $$('[data-preset]').forEach((btn) => {
+      btn.addEventListener('click', () =>
+        setThreshold(Number((btn as HTMLElement).dataset.preset ?? 70))
+      );
+    });
+    el.overReset?.addEventListener('click', () => {
+      overCount = 0;
+      if (el.overCount) el.overCount.textContent = '0';
+    });
+
+    el.exportBtn?.addEventListener('click', exportCsv);
+
+    el.aWeight?.addEventListener('change', () => {
+      aWeightEnabled = !!el.aWeight!.checked;
+      // Rebuild the live chain so the toggle takes effect immediately.
+      if (running && ctx && analyser && sourceNode) {
+        try {
+          sourceNode.disconnect();
+          for (const f of aFilters) f.disconnect();
+          if (isSound && aWeightEnabled) {
+            aFilters = buildAWeighting(ctx);
+            let head: AudioNode = sourceNode;
+            for (const f of aFilters) {
+              head.connect(f);
+              head = f;
+            }
+            head.connect(analyser);
+          } else {
+            aFilters = [];
+            sourceNode.connect(analyser);
+          }
+        } catch {
+          /* keep the existing chain on failure */
+        }
+      }
+    });
+    el.responseFast?.addEventListener('click', () => setResponse(125));
+    el.responseSlow?.addEventListener('click', () => setResponse(1000));
+    paintResponses();
 
     // restore persisted settings
     setCalibration(calibration);

@@ -23,7 +23,7 @@ const FAQ = [
   },
   {
     q: 'Can we track noise over a lesson?',
-    a: 'Yes — the 60-second graph plus min / average / max give a quick snapshot of each lesson. For longer records, keep the meter running and note the average at intervals, or screenshot display mode at the end of class.',
+    a: 'Yes — the live average (Leq) plus min / max and the over-limit counter give a quick snapshot of each lesson. Reset the stats at the start of class, then note the average at intervals or screenshot display mode at the end.',
   },
 ];
 
@@ -46,7 +46,7 @@ const headExtra = `<script type="application/ld+json">${JSON.stringify(faqLd)}</
   headExtra={headExtra}
 >
   <section class="mx-auto w-full max-w-6xl px-4 sm:px-6 pt-10 sm:pt-14 pb-6">
-    <p class="text-xs font-mono uppercase tracking-[0.2em] text-accent">For teachers &amp; schools</p>
+    <p class="text-xs font-mono uppercase tracking-[0.2em] text-accent-hover dark:text-accent-light">For teachers &amp; schools</p>
     <h1
       class="mt-3 text-3xl sm:text-5xl font-semibold tracking-tight text-ink dark:text-dark-ink text-balance"
     >
@@ -120,8 +120,8 @@ const headExtra = `<script type="application/ld+json">${JSON.stringify(faqLd)}</
             a comfortable, teachable room.
           </li>
           <li>
-            <strong>Celebrate the graph:</strong> the 60-second trace shows
-            calm stretches versus spikes — great for a debrief.
+            <strong>Count the crossings:</strong> the over-limit counter shows
+            how many times the room broke the limit — great for a debrief.
           </li>
           <li>
             <strong>Protect your voice:</strong> if levels sit near 70 dB,
