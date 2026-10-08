@@ -666,12 +666,12 @@ const isSound = variant === 'sound';
       errorTitle: $('[data-error-title]'),
       errorMsg: $('[data-error-msg]'),
       errorRetry: $('[data-error-retry]'),
-      calib: $<HTMLInputElement>('[data-calib]')[0],
+      calib: $<HTMLInputElement>('[data-calib]'),
       calibValue: $('[data-calib-value]'),
       calibReset: $('[data-calib-reset]'),
-      threshold: $<HTMLInputElement>('[data-threshold]')[0],
+      threshold: $<HTMLInputElement>('[data-threshold]'),
       thresholdValue: $('[data-threshold-value]'),
-      alarmToggle: $<HTMLInputElement>('[data-alarm-toggle]')[0],
+      alarmToggle: $<HTMLInputElement>('[data-alarm-toggle]'),
       alarmMsg: $('[data-alarm-msg]'),
       statMin: $('[data-stat="min"]'),
       statAvg: $('[data-stat="avg"]'),
@@ -685,7 +685,7 @@ const isSound = variant === 'sound';
       overCount: $('[data-over-count]'),
       overReset: $('[data-over-reset]'),
       exportBtn: $('[data-export]'),
-      aWeight: $<HTMLInputElement>('[data-aweight]')[0],
+      aWeight: $<HTMLInputElement>('[data-aweight]'),
       responseFast: $('[data-response="fast"]'),
       responseSlow: $('[data-response="slow"]'),
     } as const;
@@ -1466,17 +1466,20 @@ const isSound = variant === 'sound';
       setDisplayMode(!displayModeOn())
     );
 
-    el.calib?.addEventListener('input', () =>
-      setCalibration(Number(el.calib!.value))
-    );
+    el.calib?.addEventListener('input', () => {
+      // The element exists here (listener only attaches when found), but
+      // re-query through `el` instead of closing over it so a missing
+      // element on other pages can never throw.
+      if (el.calib) setCalibration(Number(el.calib.value));
+    });
     el.calibReset?.addEventListener('click', () => setCalibration(0));
 
-    el.threshold?.addEventListener('input', () =>
-      setThreshold(Number(el.threshold!.value))
-    );
-    el.alarmToggle?.addEventListener('change', () =>
-      setAlarmEnabled(!!el.alarmToggle!.checked)
-    );
+    el.threshold?.addEventListener('input', () => {
+      if (el.threshold) setThreshold(Number(el.threshold.value));
+    });
+    el.alarmToggle?.addEventListener('change', () => {
+      if (el.alarmToggle) setAlarmEnabled(el.alarmToggle.checked);
+    });
     el.alarmTest?.addEventListener('click', () => {
       // Flash the panel for 2 s even without the mic running.
       alarmTestUntil = performance.now() + 2000;
@@ -1501,7 +1504,7 @@ const isSound = variant === 'sound';
     el.exportBtn?.addEventListener('click', exportCsv);
 
     el.aWeight?.addEventListener('change', () => {
-      aWeightEnabled = !!el.aWeight!.checked;
+      aWeightEnabled = el.aWeight ? el.aWeight.checked : aWeightEnabled;
       // Rebuild the live chain so the toggle takes effect immediately.
       if (running && ctx && analyser && sourceNode) {
         try {
